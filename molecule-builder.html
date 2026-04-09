@@ -282,6 +282,64 @@
   .mode-indicator.place { border-color: rgba(74,240,176,0.3); color: var(--accent); background: rgba(74,240,176,0.06); }
   .mode-indicator.bond  { border-color: rgba(74,159,255,0.3); color: var(--accent2); background: rgba(74,159,255,0.06); }
   .mode-indicator.drag  { border-color: rgba(240,160,74,0.3); color: var(--accent3); background: rgba(240,160,74,0.06); }
+
+  /* Tutor: high-visibility current step (canvas) */
+  .tutor-step-banner {
+    position: absolute;
+    top: 44px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: min(580px, calc(100% - 28px));
+    z-index: 5;
+    text-align: left;
+    padding: 10px 14px 12px;
+    border-radius: 10px;
+    background: rgba(12, 16, 22, 0.92);
+    border: 1px solid rgba(74, 240, 176, 0.45);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.45);
+    backdrop-filter: blur(8px);
+    pointer-events: none;
+  }
+  .tutor-step-banner.is-hidden { display: none !important; }
+  .tutor-step-banner .tsb-head {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .tutor-step-banner .tsb-action {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+    line-height: 1.35;
+  }
+  .tutor-step-banner .tsb-muted {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.45;
+    margin: 0;
+  }
+  .tutor-step-banner .tsb-steps {
+    margin: 0;
+    padding-left: 1.15rem;
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.55;
+  }
+  .tutor-step-banner .tsb-steps li { margin: 3px 0; }
+  .tutor-step-banner .tsb-steps kbd {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--accent);
+  }
+
   .atom-flashcard {
     position: absolute;
     top: 14px;
@@ -338,7 +396,7 @@
   .atom-badge.good { color: var(--accent); border-color: rgba(74,240,176,0.35); }
   .atom-badge.warn { color: var(--danger); border-color: rgba(240,80,96,0.4); }
   .tutor-log {
-    max-height: 140px;
+    max-height: 220px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -405,17 +463,22 @@
   }
   .metric .k { font-size: 10px; color: var(--muted); font-family: var(--mono); }
   .metric .v { font-size: 14px; color: var(--text); font-weight: 600; margin-top: 2px; }
-  .lesson-list { display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; }
+  .lesson-list { display:flex; flex-direction:column; gap:8px; max-height:280px; overflow-y:auto; }
   .lesson-item {
     border:1px solid var(--border);
     background:var(--panel2);
-    border-radius:6px;
-    padding:7px 8px;
+    border-radius:8px;
+    padding:9px 10px;
     cursor:pointer;
-    font-size:11px;
+    text-align:left;
+    width:100%;
+    font:inherit;
     color:var(--text);
   }
-  .lesson-item:hover { border-color: rgba(74,240,176,0.35); color: var(--accent); }
+  .lesson-item:hover { border-color: rgba(74,240,176,0.35); }
+  .lesson-item .lesson-title { font-size:12px; font-weight:600; color:var(--text); margin-bottom:4px; }
+  .lesson-item .lesson-learn { font-size:11px; color:var(--muted); line-height:1.45; }
+  .lesson-item:hover .lesson-title { color: var(--accent); }
   .warning-list { display:flex; flex-direction:column; gap:6px; max-height:120px; overflow-y:auto; margin-top:8px; }
   .warn-item {
     font-size:11px;
@@ -616,6 +679,7 @@
   <!-- CENTER: Canvas -->
   <div class="canvas-area">
     <div class="mode-indicator" id="modeIndicator">Place mode — select element, click to place</div>
+    <div id="tutorStepBanner" class="tutor-step-banner is-hidden" role="status" aria-live="polite"></div>
     <div class="atom-flashcard" id="atomFlashcard"></div>
     <canvas id="mol"></canvas>
     <div class="canvas-hints">
@@ -658,7 +722,7 @@
       <summary>AI Tutor</summary>
       <div class="panel-group-body">
         <div class="tutor-row">
-          <input id="tutorInput" class="tutor-input" list="tutorSuggestions" placeholder="Try: build water">
+          <input id="tutorInput" class="tutor-input" list="tutorSuggestions" placeholder='e.g. practice water — step help on canvas'>
           <datalist id="tutorSuggestions"></datalist>
           <button class="btn" onclick="runTutor()">Ask</button>
           <button class="btn" onclick="checkTutorStep()">Check</button>
@@ -668,7 +732,7 @@
       </div>
     </details>
 
-    <details class="panel-group">
+    <details class="panel-group" open>
       <summary>Lessons</summary>
       <div class="panel-group-body">
         <div class="lesson-list" id="lessonList"></div>
@@ -767,7 +831,7 @@
     <div class="onboarding-sub">A quick guide to build, learn, and assess molecules.</div>
     <div class="onboard-grid">
       <div class="onboard-item"><strong>1) Build Fast</strong><br>Use Auto Build templates or type formulas like <code>C2H5OH</code>.</div>
-      <div class="onboard-item"><strong>2) Learn</strong><br>Ask AI Tutor: <code>build water</code> or <code>practice methane</code>.</div>
+      <div class="onboard-item"><strong>2) Learn</strong><br>Type <code>practice water</code> for step-by-step help on the canvas, or <code>build water</code> to watch it build.</div>
       <div class="onboard-item"><strong>3) Check Work</strong><br>Use Practice + Check, then see your score in Assessment.</div>
       <div class="onboard-item"><strong>4) Save/Share</strong><br>Save to slots or copy a link to share your exact structure.</div>
     </div>
@@ -923,6 +987,7 @@ let selectedPulse = 0;
 let flashPinned = false;
 let flashDismissed = false;
 let tutorTimer = null;
+let guidedBuildInProgress = false;
 let tutorMode = 'guided'; // guided | practice
 let practicePlan = null;
 let practiceStep = 0;
@@ -931,11 +996,11 @@ const TUTOR_HISTORY_LIMIT = 12;
 let assessment = { startedAt: Date.now(), checks: 0, mistakes: 0, score: 0 };
 let renderMode = 'classic'; // classic | cinematic
 const LESSONS = [
-  { key: 'water', label: 'Water Basics', cmd: 'practice water' },
-  { key: 'methane', label: 'Methane Tetrahedral', cmd: 'practice methane' },
-  { key: 'co2', label: 'CO2 Linear', cmd: 'practice carbon dioxide' },
-  { key: 'benzene', label: 'Benzene Ring', cmd: 'practice benzene' },
-  { key: 'ethanol', label: 'Ethanol Functional Group', cmd: 'practice ethanol' }
+  { key: 'water', label: 'Water (H₂O)', learn: 'Bent molecule: O forms single bonds to two H atoms; polar O–H bonds.', cmd: 'practice water' },
+  { key: 'methane', label: 'Methane (CH₄)', learn: 'Carbon with four single bonds to hydrogen — classic tetrahedral arrangement.', cmd: 'practice methane' },
+  { key: 'co2', label: 'CO₂ (linear)', learn: 'Central C with double bonds to each O — straight line, no lone pairs on C in this model.', cmd: 'practice carbon dioxide' },
+  { key: 'benzene', label: 'Benzene (C₆H₆)', learn: 'Ring of six carbons with alternating double bonds (Kekulé) plus one H on each C.', cmd: 'practice benzene' },
+  { key: 'ethanol', label: 'Ethanol (C₂H₅OH)', learn: 'Two carbons, C–O single bond, and O–H — the “alcohol” functional group.', cmd: 'practice ethanol' }
 ];
 
 // ── Canvas Setup ──────────────────────────────────────────────────────
@@ -1830,10 +1895,12 @@ function logTutor(msg) {
 }
 
 function stopTutorBuild() {
+  guidedBuildInProgress = false;
   if (tutorTimer) {
     clearInterval(tutorTimer);
     tutorTimer = null;
   }
+  updateTutorStepBanner();
 }
 
 function setTutorMode(mode) {
@@ -1842,24 +1909,85 @@ function setTutorMode(mode) {
   if (label) label.textContent = `mode: ${mode}`;
 }
 
+function elementName(sym) {
+  const el = ELEMENTS.find(e => e.sym === sym);
+  return el ? el.name : sym;
+}
+
+function buildPracticeBannerHTML() {
+  const plan = practicePlan;
+  if (!plan) return '';
+  const tpl = plan.tpl;
+  const total = tpl.atoms.length + tpl.bonds.length;
+  const stepNum = practiceStep + 1;
+  if (practiceStep < tpl.atoms.length) {
+    const idx = practiceStep;
+    const sym = tpl.atoms[idx].sym;
+    const name = elementName(sym);
+    return `
+      <div class="tsb-head">Step ${stepNum} of ${total} — place atoms</div>
+      <div class="tsb-action">Place one <strong>${sym}</strong> atom (${name})</div>
+      <ol class="tsb-steps">
+        <li>Click <strong>Place Atom</strong> in the right panel (shortcut <kbd>P</kbd>).</li>
+        <li>Select <strong>${sym}</strong> in the periodic table or quick bar.</li>
+        <li>Click the <strong>canvas</strong> to place the atom.</li>
+        <li>Click <strong>Check</strong> in AI Tutor when this atom is placed.</li>
+      </ol>`;
+  }
+  const bondIdx = practiceStep - tpl.atoms.length;
+  const [ai, bi, t] = tpl.bonds[bondIdx];
+  const sa = tpl.atoms[ai].sym;
+  const sb = tpl.atoms[bi].sym;
+  const btLabel = ['', 'Single', 'Double', 'Triple'][t] || 'Single';
+  return `
+    <div class="tsb-head">Step ${stepNum} of ${total} — bonding</div>
+    <div class="tsb-action">${btLabel} bond: <strong>${sa}</strong> ↔ <strong>${sb}</strong></div>
+    <ol class="tsb-steps">
+      <li>Click <strong>Bond Atoms</strong> (shortcut <kbd>B</kbd>).</li>
+      <li>Choose <strong>${btLabel.toLowerCase()}</strong> if it is not already selected.</li>
+      <li>Click the <strong>${sa}</strong> atom, then the <strong>${sb}</strong> atom.</li>
+      <li>Click <strong>Check</strong>.</li>
+    </ol>`;
+}
+
+function updateTutorStepBanner() {
+  const el = document.getElementById('tutorStepBanner');
+  if (!el) return;
+  if (guidedBuildInProgress) {
+    el.classList.remove('is-hidden');
+    el.innerHTML = `
+      <div class="tsb-head">Guided build</div>
+      <p class="tsb-muted">The tutor is adding atoms and bonds automatically. Watch the <strong>canvas</strong>. When it stops, <strong>right-drag</strong> to rotate and inspect.</p>`;
+    return;
+  }
+  if (!practicePlan) {
+    el.classList.add('is-hidden');
+    el.innerHTML = '';
+    return;
+  }
+  el.classList.remove('is-hidden');
+  el.innerHTML = buildPracticeBannerHTML();
+}
+
 function startGuidedBuild(formula, tpl) {
-  stopTutorBuild();
   setTutorMode('guided');
   practicePlan = null;
   practiceStep = 0;
   clearAll();
+  guidedBuildInProgress = true;
+  updateTutorStepBanner();
   const steps = [];
   tpl.atoms.forEach((a, i) => steps.push({ kind: 'atom', idx: i, payload: a }));
   tpl.bonds.forEach((b, i) => steps.push({ kind: 'bond', idx: i, payload: b }));
   const ids = [];
   let ptr = 0;
-  logTutor(`Tutor: building ${tpl.name} (${formula}) step-by-step.`);
+  logTutor(`Guided build: ${tpl.name} (${formula}) — watch the canvas.`);
   tutorTimer = setInterval(() => {
     if (ptr >= steps.length) {
       stopTutorBuild();
       updateInfo();
       draw();
-      logTutor('Tutor: done. Rotate and inspect the final structure.');
+      logTutor('Guided build finished. Right-drag to rotate and inspect.');
       return;
     }
     const s = steps[ptr++];
@@ -1871,7 +1999,7 @@ function startGuidedBuild(formula, tpl) {
         selectedAtom = atom;
         flashDismissed = false;
         if (!flashPinned) updateAtomFlashcard();
-        logTutor(`Step ${ptr}/${steps.length}: placed ${atom.sym} atom.`);
+        logTutor(`Step ${ptr}/${steps.length}: placed ${atom.sym}.`);
       }
     } else {
       const [ai, bi, type] = s.payload;
@@ -1880,7 +2008,7 @@ function startGuidedBuild(formula, tpl) {
         bonds.push({ a, b, type });
         selectedBond = bonds[bonds.length - 1];
         selectedAtom = null;
-        logTutor(`Step ${ptr}/${steps.length}: added ${['','single','double','triple'][type]} bond.`);
+        logTutor(`Step ${ptr}/${steps.length}: added ${['','single','double','triple'][type]} bond ${tpl.atoms[ai].sym}–${tpl.atoms[bi].sym}.`);
       }
     }
     updateInfo();
@@ -1890,21 +2018,22 @@ function startGuidedBuild(formula, tpl) {
 
 function startPracticeMode(formula, tpl) {
   stopTutorBuild();
-  setTutorMode('practice');
   clearAll();
+  setTutorMode('practice');
   practiceStep = 0;
   practicePlan = {
     formula,
     tpl,
     atomIdByTemplateIndex: []
   };
-  logTutor(`Practice mode: build ${tpl.name} (${formula}).`);
-  logTutor(`Step 1/${tpl.atoms.length + tpl.bonds.length}: place atom ${tpl.atoms[0].sym}. Then click Check.`);
+  updateTutorStepBanner();
+  logTutor(`Practice: ${tpl.name} (${formula}) — use the green step box above the canvas.`);
+  logTutor('Place atoms in order, then add bonds. Press Check after each step when it matches.');
 }
 
 function checkTutorStep() {
   if (!practicePlan) {
-    logTutor('Tutor: no active practice session. Ask "practice water" first.');
+    logTutor('No practice session. Type e.g. "practice water" and press Ask.');
     assessment.mistakes++;
     updateAssessmentView();
     return;
@@ -1915,35 +2044,40 @@ function checkTutorStep() {
   if (practiceStep < tpl.atoms.length) {
     const idx = practiceStep;
     if (atoms.length <= idx) {
-      logTutor(`Not yet. Place atom ${tpl.atoms[idx].sym}, then press Check.`);
+      logTutor(`Not yet — place ${tpl.atoms[idx].sym} on the canvas (see green box), then Check.`);
       assessment.mistakes++;
       updateAssessmentView();
+      updateTutorStepBanner();
       return;
     }
     const actual = [...atoms].sort((a,b)=>a.id-b.id)[idx];
     if (!actual || actual.sym !== tpl.atoms[idx].sym) {
-      logTutor(`Close, but step expects ${tpl.atoms[idx].sym}. Undo/delete and try again.`);
+      logTutor(`This step needs element ${tpl.atoms[idx].sym} (in order). Delete the wrong atom or start over with Clear.`);
       assessment.mistakes++;
       updateAssessmentView();
+      updateTutorStepBanner();
       return;
     }
     practicePlan.atomIdByTemplateIndex[idx] = actual.id;
     practiceStep++;
     if (practiceStep < tpl.atoms.length) {
-      logTutor(`Correct. Next: place atom ${tpl.atoms[practiceStep].sym}.`);
+      logTutor(`Correct. Next atom: ${tpl.atoms[practiceStep].sym}.`);
     } else {
-      logTutor('Great atoms done. Now start bonding and press Check after each bond.');
-      const [ai, bi, t] = tpl.bonds[0];
-      logTutor(`Next bond: atom #${ai+1} to atom #${bi+1} (${['','single','double','triple'][t]}).`);
+      logTutor('All atoms placed. Switch to Bond mode and follow the next step.');
     }
+    updateTutorStepBanner();
     return;
   }
 
   const bondIdx = practiceStep - tpl.atoms.length;
   if (bonds.length <= bondIdx) {
-    logTutor('Not yet. Create the expected bond first, then press Check.');
+    const [ai, bi, t] = tpl.bonds[bondIdx];
+    const sa = tpl.atoms[ai].sym;
+    const sb = tpl.atoms[bi].sym;
+    logTutor(`Add a ${['','single','double','triple'][t]} bond between ${sa} and ${sb} (see green box), then Check.`);
     assessment.mistakes++;
     updateAssessmentView();
+    updateTutorStepBanner();
     return;
   }
   const [ai, bi, t] = tpl.bonds[bondIdx];
@@ -1953,22 +2087,27 @@ function checkTutorStep() {
     ((b.a===idA && b.b===idB) || (b.a===idB && b.b===idA)) && b.type===t
   );
   if (!expected) {
-    logTutor(`That bond is not the expected one. Need ${['','single','double','triple'][t]} bond between atom #${ai+1} and #${bi+1}.`);
+    const sa = tpl.atoms[ai].sym;
+    const sb = tpl.atoms[bi].sym;
+    logTutor(`Need a ${['','single','double','triple'][t]} bond between your ${sa} and ${sb} atoms (Bond tool, then Check).`);
     assessment.mistakes++;
     updateAssessmentView();
+    updateTutorStepBanner();
     return;
   }
   practiceStep++;
   if (practiceStep >= totalSteps) {
-    logTutor('Excellent. Practice build completed.');
+    logTutor('Lesson complete — nice work.');
     practicePlan = null;
     setTutorMode('guided');
+    updateTutorStepBanner();
     updateAssessmentView();
     return;
   }
   const nextBondIdx = practiceStep - tpl.atoms.length;
   const [nai, nbi, nt] = tpl.bonds[nextBondIdx];
-  logTutor(`Correct. Next bond: atom #${nai+1} to atom #${nbi+1} (${['','single','double','triple'][nt]}).`);
+  logTutor(`Correct. Next: ${['','single','double','triple'][nt]} bond ${tpl.atoms[nai].sym}–${tpl.atoms[nbi].sym}.`);
+  updateTutorStepBanner();
 }
 
 function runTutor() {
@@ -1978,7 +2117,7 @@ function runTutor() {
   addTutorHistory(raw);
   const q = raw.toLowerCase();
   if (q === 'help') {
-    logTutor('Tutor commands: "build water", "practice water", "build CO2", "build C8H10N4O2", "suggest".');
+    logTutor('Commands: "practice water" = step-by-step on canvas; "build water" = auto-build. Also: "build CO2", "suggest".');
     return;
   }
   if (q === 'suggest') {
@@ -2008,8 +2147,13 @@ function runTutor() {
 }
 
 function clearAll() {
+  stopTutorBuild();
   atoms = []; bonds = [];
   selectedAtom = null; selectedBond = null; bondFirst = null;
+  practicePlan = null;
+  practiceStep = 0;
+  setTutorMode('guided');
+  updateTutorStepBanner();
   updateInfo(); draw();
 }
 
@@ -2138,8 +2282,9 @@ function renderLessons() {
   el.innerHTML = '';
   LESSONS.forEach((lesson, i) => {
     const item = document.createElement('button');
+    item.type = 'button';
     item.className = 'lesson-item';
-    item.textContent = `${i + 1}. ${lesson.label}`;
+    item.innerHTML = `<div class="lesson-title">${i + 1}. ${lesson.label}</div><div class="lesson-learn">${lesson.learn}</div>`;
     item.addEventListener('click', () => {
       const input = document.getElementById('tutorInput');
       if (input) input.value = lesson.cmd;
@@ -2160,6 +2305,9 @@ function snapshotState() {
 
 function restoreState(state) {
   if (!state) return;
+  stopTutorBuild();
+  practicePlan = null;
+  practiceStep = 0;
   atoms = (state.atoms || []).map(a => ({...a}));
   bonds = (state.bonds || []).map(b => ({...b}));
   nextId = state.nextId || (atoms.reduce((m,a)=>Math.max(m,a.id),0) + 1);
@@ -2169,6 +2317,8 @@ function restoreState(state) {
   selectedAtom = null;
   selectedBond = null;
   bondFirst = null;
+  setTutorMode('guided');
+  updateTutorStepBanner();
   updateInfo();
   draw();
 }
@@ -2446,7 +2596,8 @@ if (tutorInput) {
   });
   tutorInput.addEventListener('input', () => applyTutorGhostCompletion());
 }
-logTutor('Tutor ready. Ask: "build water" for a guided walkthrough.');
+logTutor('Ready: try "practice water" for step-by-step instructions above the canvas, or "build water" to watch an auto-build.');
+updateTutorStepBanner();
 setInterval(updateAssessmentView, 1000);
 if (!localStorage.getItem('molbuilder_onboarding_seen')) {
   openOnboarding();
