@@ -1,3 +1,9 @@
 # Static site: single HTML at repo root — no build step
 [build]
   publish = "."
+
+# So https://yoursite.netlify.app/ loads the app (not 404 without index.html)
+[[redirects]]
+  from = "/"
+  to = "/molecule-builder.html"
+  status = 302
