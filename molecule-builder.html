@@ -1,0 +1,2473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MolBuilder 3D</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0c10;
+    --panel: #111318;
+    --panel2: #16191f;
+    --border: #252830;
+    --accent: #4af0b0;
+    --accent2: #4a9fff;
+    --accent3: #f0a04a;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --danger: #f05060;
+    --mono: 'Space Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  .logo {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+  }
+  .logo span { color: var(--muted); font-weight: 400; }
+  .top-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 10px;
+  }
+  .nav-pill {
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .nav-pill:hover { color: var(--text); border-color: rgba(74,240,176,0.35); }
+  .header-info {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .auto-build-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .auto-input {
+    width: 170px;
+    height: 30px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--text);
+    padding: 0 10px;
+    font-size: 12px;
+    font-family: var(--sans);
+    outline: none;
+  }
+  .auto-input:focus {
+    border-color: rgba(74,240,176,0.35);
+    box-shadow: 0 0 0 2px rgba(74,240,176,0.12);
+  }
+  .template-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    max-height: 170px;
+    overflow-y: auto;
+  }
+  .template-chip {
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 6px 8px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.12s;
+    font-size: 11px;
+    line-height: 1.3;
+  }
+  .template-chip:hover {
+    border-color: rgba(74,240,176,0.35);
+    color: var(--accent);
+  }
+  .template-chip .f { font-family: var(--mono); font-weight: 700; }
+  .template-chip .n { color: var(--muted); font-size: 10px; }
+  .mol-name {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    background: rgba(74,240,176,0.08);
+    border: 1px solid rgba(74,240,176,0.2);
+    padding: 4px 12px;
+    border-radius: 20px;
+    min-width: 120px;
+    text-align: center;
+  }
+  .btn {
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* MAIN LAYOUT */
+  .layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* LEFT PANEL — Periodic Table */
+  .left-panel {
+    width: 300px;
+    flex-shrink: 0;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    padding: 12px 16px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ptable-wrap {
+    padding: 10px 8px;
+    overflow-x: auto;
+  }
+  .ptable {
+    display: grid;
+    grid-template-columns: repeat(18, 1fr);
+    gap: 2px;
+    min-width: 250px;
+  }
+  .el {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.12s;
+    font-size: 8px;
+    position: relative;
+    min-width: 14px;
+  }
+  .el .sym { font-weight: 700; font-size: 9px; line-height: 1; }
+  .el .num { font-size: 6px; color: rgba(255,255,255,0.5); }
+  .el:hover { transform: scale(1.15); z-index: 2; border-color: rgba(255,255,255,0.4); }
+  .el.selected { border-color: var(--accent) !important; box-shadow: 0 0 8px rgba(74,240,176,0.4); }
+
+  /* CPK color categories */
+  .cat-H   { background: #3a4a5a; }
+  .cat-C   { background: #2a3038; }
+  .cat-N   { background: #1a3a5a; }
+  .cat-O   { background: #5a2a1a; }
+  .cat-hal { background: #1a4a3a; }
+  .cat-met { background: #2a2a4a; }
+  .cat-alk { background: #4a3a1a; }
+  .cat-ear { background: #3a4a1a; }
+  .cat-tra { background: #2a3a4a; }
+  .cat-lan { background: #3a2a4a; }
+  .cat-act { background: #4a2a3a; }
+  .cat-non { background: #2a4a4a; }
+  .cat-nob { background: #3a1a4a; }
+  .cat-met2{ background: #4a4a1a; }
+  .cat-sem { background: #1a4a4a; }
+
+  /* Quick picks */
+  .quick-section { padding: 10px 12px; border-top: 1px solid var(--border); }
+  .quick-title { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; font-family: var(--mono); }
+  .quick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .qel {
+    padding: 6px 4px;
+    border-radius: 5px;
+    text-align: center;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.12s;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .qel:hover { transform: scale(1.08); }
+  .qel.selected { border-color: var(--accent); box-shadow: 0 0 8px rgba(74,240,176,0.3); }
+
+  /* CANVAS AREA */
+  .canvas-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: radial-gradient(ellipse at 40% 40%, #0d1520 0%, #0a0c10 70%);
+  }
+  canvas#mol { width: 100%; height: 100%; display: block; cursor: crosshair; }
+  canvas#mol.grabbing { cursor: grabbing; }
+
+  .canvas-hints {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 16px;
+    pointer-events: none;
+  }
+  .hint {
+    font-size: 11px;
+    color: var(--muted);
+    background: rgba(10,12,16,0.7);
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    backdrop-filter: blur(4px);
+  }
+  .mode-indicator {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 14px;
+    border-radius: 20px;
+    background: rgba(10,12,16,0.8);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    pointer-events: none;
+  }
+  .mode-indicator.place { border-color: rgba(74,240,176,0.3); color: var(--accent); background: rgba(74,240,176,0.06); }
+  .mode-indicator.bond  { border-color: rgba(74,159,255,0.3); color: var(--accent2); background: rgba(74,159,255,0.06); }
+  .mode-indicator.drag  { border-color: rgba(240,160,74,0.3); color: var(--accent3); background: rgba(240,160,74,0.06); }
+  .atom-flashcard {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 240px;
+    background: rgba(17,19,24,0.9);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.35);
+    display: none;
+    z-index: 4;
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .atom-flashcard.show {
+    display: block;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  .atom-f-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .atom-f-actions { display: flex; gap: 4px; }
+  .atom-f-btn {
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--muted);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 10px;
+    cursor: pointer;
+  }
+  .atom-f-btn:hover { color: var(--text); border-color: rgba(74,240,176,0.35); }
+  .atom-f-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .atom-f-sub { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+  .atom-f-row { font-size: 12px; color: var(--text); line-height: 1.55; }
+  .atom-f-row strong { color: var(--accent); }
+  .atom-badges { display: flex; gap: 6px; margin: 8px 0; }
+  .atom-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--muted);
+  }
+  .atom-badge.good { color: var(--accent); border-color: rgba(74,240,176,0.35); }
+  .atom-badge.warn { color: var(--danger); border-color: rgba(240,80,96,0.4); }
+  .tutor-log {
+    max-height: 140px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .tutor-msg {
+    font-size: 11px;
+    line-height: 1.4;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    color: var(--text);
+  }
+  .tutor-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .tutor-mode {
+    margin-top: 6px;
+    font-size: 10px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+  .tutor-input {
+    flex: 1;
+    height: 30px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--text);
+    padding: 0 10px;
+    font-size: 12px;
+  }
+  .panel-group {
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-group > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 10px 12px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-group > summary::-webkit-details-marker { display: none; }
+  .panel-group > summary::after { content: '+'; color: var(--muted); font-size: 13px; }
+  .panel-group[open] > summary::after { content: '-'; color: var(--accent); }
+  .panel-group-body { padding: 0 12px 12px; }
+  .metric-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; }
+  .metric {
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    border-radius: 6px;
+    padding: 8px;
+  }
+  .metric .k { font-size: 10px; color: var(--muted); font-family: var(--mono); }
+  .metric .v { font-size: 14px; color: var(--text); font-weight: 600; margin-top: 2px; }
+  .lesson-list { display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; }
+  .lesson-item {
+    border:1px solid var(--border);
+    background:var(--panel2);
+    border-radius:6px;
+    padding:7px 8px;
+    cursor:pointer;
+    font-size:11px;
+    color:var(--text);
+  }
+  .lesson-item:hover { border-color: rgba(74,240,176,0.35); color: var(--accent); }
+  .warning-list { display:flex; flex-direction:column; gap:6px; max-height:120px; overflow-y:auto; margin-top:8px; }
+  .warn-item {
+    font-size:11px;
+    color:#f7b2bb;
+    border:1px solid rgba(240,80,96,0.35);
+    background:rgba(240,80,96,0.08);
+    border-radius:6px;
+    padding:6px 8px;
+  }
+  .shortcuts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 6px;
+  }
+  .kbd-item {
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    border-radius: 6px;
+    padding: 7px 8px;
+    font-size: 11px;
+    color: var(--text);
+  }
+  .kbd-item kbd {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent);
+    border: 1px solid rgba(74,240,176,0.35);
+    border-radius: 4px;
+    padding: 1px 4px;
+    background: rgba(74,240,176,0.08);
+    margin-right: 5px;
+  }
+  .onboarding {
+    position: fixed;
+    inset: 0;
+    background: rgba(5,8,12,0.66);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 30;
+  }
+  .onboarding.show { display: flex; }
+  .onboarding-card {
+    width: min(720px, calc(100vw - 28px));
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  }
+  .onboarding-title { font-size: 18px; font-weight: 700; color: var(--text); }
+  .onboarding-sub { font-size: 12px; color: var(--muted); margin-top: 4px; margin-bottom: 12px; }
+  .onboard-grid { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+  .onboard-item { border:1px solid var(--border); background:var(--panel2); border-radius:8px; padding:10px; font-size:12px; color:var(--text); }
+  .onboard-item strong { color: var(--accent); }
+  .onboarding-actions { display:flex; justify-content:flex-end; gap:8px; margin-top: 12px; }
+
+  /* RIGHT PANEL — Info */
+  .right-panel {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .info-section { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .info-section.slim { padding: 10px 12px; }
+  .info-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .info-val { font-size: 14px; font-weight: 500; color: var(--text); }
+  .info-val.big { font-size: 20px; font-weight: 600; color: var(--accent); font-family: var(--mono); }
+  .bond-list { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
+  .bond-item {
+    font-size: 11px;
+    font-family: var(--mono);
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 5px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .bond-type { font-size: 10px; padding: 1px 5px; border-radius: 3px; font-weight: 700; }
+  .bt-single { background: rgba(74,240,176,0.1); color: var(--accent); }
+  .bt-double { background: rgba(74,159,255,0.1); color: var(--accent2); }
+  .bt-triple { background: rgba(240,160,74,0.1); color: var(--accent3); }
+  .atom-info-box {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--muted);
+  }
+  .atom-info-box strong { color: var(--text); }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tool-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid transparent;
+    transition: all 0.12s;
+    color: var(--muted);
+  }
+  .tool-btn:hover { background: var(--panel2); color: var(--text); }
+  .tool-btn.active { background: var(--panel2); border-color: var(--border); color: var(--text); }
+  .tool-btn.active.place-tool { border-color: rgba(74,240,176,0.3); color: var(--accent); }
+  .tool-btn.active.bond-tool  { border-color: rgba(74,159,255,0.3); color: var(--accent2); }
+  .tool-btn.active.drag-tool  { border-color: rgba(240,160,74,0.3); color: var(--accent3); }
+  .tool-icon { font-size: 16px; width: 20px; text-align: center; }
+
+  .bond-controls { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .bond-type-row { display: flex; gap: 4px; margin-top: 6px; }
+  .btype-btn {
+    flex: 1;
+    padding: 4px 0;
+    font-size: 11px;
+    font-family: var(--mono);
+    font-weight: 700;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.12s;
+    text-align: center;
+  }
+  .btype-btn.active { background: rgba(74,159,255,0.1); border-color: rgba(74,159,255,0.4); color: var(--accent2); }
+
+  .formula-box {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    word-break: break-all;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .delete-hint { font-size: 10px; color: var(--muted); margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Mol<span>Builder</span> 3D</div>
+  <div class="top-nav">
+    <button class="nav-pill" onclick="openOnboarding()">Quick Start</button>
+    <button class="nav-pill" onclick="focusTutorInput()">AI Tutor</button>
+    <button class="nav-pill" onclick="toggleRenderMode()">Render</button>
+  </div>
+  <div class="header-info">
+    <div class="mol-name" id="molName">—</div>
+    <div class="auto-build-wrap">
+      <input class="auto-input" id="autoBuildInput" list="autoBuildList" placeholder="water or H2O">
+      <datalist id="autoBuildList"></datalist>
+      <button class="btn" onclick="autoBuildFromInput()">⚗ Auto Build</button>
+      <button class="btn" onclick="buildRandomTemplate()">🎲 Random</button>
+    </div>
+    <button class="btn" onclick="rotateDump()">⟳ Reset View</button>
+    <button class="btn danger" onclick="clearAll()">✕ Clear</button>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- LEFT: Periodic Table -->
+  <div class="left-panel">
+    <div class="panel-title">Periodic Table</div>
+    <div class="quick-section">
+      <div class="quick-title">Common Elements</div>
+      <div class="quick-grid" id="quickGrid"></div>
+    </div>
+    <div class="ptable-wrap">
+      <div class="ptable" id="ptable"></div>
+    </div>
+  </div>
+
+  <!-- CENTER: Canvas -->
+  <div class="canvas-area">
+    <div class="mode-indicator" id="modeIndicator">Place mode — select element, click to place</div>
+    <div class="atom-flashcard" id="atomFlashcard"></div>
+    <canvas id="mol"></canvas>
+    <div class="canvas-hints">
+      <div class="hint">Right-drag to rotate</div>
+      <div class="hint">Scroll to zoom</div>
+      <div class="hint">Delete key to remove selected</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Tools + Info -->
+  <div class="right-panel">
+    <div class="panel-title">Tools</div>
+    <div class="toolbar">
+      <div class="tool-btn active place-tool" id="toolPlace" onclick="setMode('place')">
+        <span class="tool-icon">⚛</span> Place Atom
+      </div>
+      <div class="tool-btn bond-tool" id="toolBond" onclick="setMode('bond')">
+        <span class="tool-icon">—</span> Bond Atoms
+      </div>
+      <div class="tool-btn drag-tool" id="toolDrag" onclick="setMode('drag')">
+        <span class="tool-icon">✥</span> Move Atoms
+      </div>
+    </div>
+    <div class="bond-controls" id="bondControls" style="display:none">
+      <div class="info-label">Bond Type</div>
+      <div class="bond-type-row">
+        <div class="btype-btn active" id="bt1" onclick="setBondType(1)">Single</div>
+        <div class="btype-btn" id="bt2" onclick="setBondType(2)">Double</div>
+        <div class="btype-btn" id="bt3" onclick="setBondType(3)">Triple</div>
+      </div>
+    </div>
+    <details class="panel-group" open>
+      <summary>Build Templates</summary>
+      <div class="panel-group-body">
+        <div class="template-grid" id="templateGrid"></div>
+      </div>
+    </details>
+
+    <details class="panel-group" open>
+      <summary>AI Tutor</summary>
+      <div class="panel-group-body">
+        <div class="tutor-row">
+          <input id="tutorInput" class="tutor-input" list="tutorSuggestions" placeholder="Try: build water">
+          <datalist id="tutorSuggestions"></datalist>
+          <button class="btn" onclick="runTutor()">Ask</button>
+          <button class="btn" onclick="checkTutorStep()">Check</button>
+        </div>
+        <div class="tutor-mode" id="tutorModeLabel">mode: guided</div>
+        <div class="tutor-log" id="tutorLog"></div>
+      </div>
+    </details>
+
+    <details class="panel-group">
+      <summary>Lessons</summary>
+      <div class="panel-group-body">
+        <div class="lesson-list" id="lessonList"></div>
+      </div>
+    </details>
+
+    <details class="panel-group">
+      <summary>Assessment</summary>
+      <div class="panel-group-body">
+        <div class="metric-grid">
+          <div class="metric"><div class="k">Score</div><div class="v" id="metricScore">0</div></div>
+          <div class="metric"><div class="k">Mistakes</div><div class="v" id="metricMistakes">0</div></div>
+          <div class="metric"><div class="k">Checks</div><div class="v" id="metricChecks">0</div></div>
+          <div class="metric"><div class="k">Time</div><div class="v" id="metricTime">0s</div></div>
+        </div>
+      </div>
+    </details>
+
+    <details class="panel-group">
+      <summary>Save / Share</summary>
+      <div class="panel-group-body">
+        <div class="tutor-row">
+          <button class="btn" onclick="saveSlot(1)">Save 1</button>
+          <button class="btn" onclick="saveSlot(2)">Save 2</button>
+          <button class="btn" onclick="saveSlot(3)">Save 3</button>
+        </div>
+        <div class="tutor-row" style="margin-top:6px">
+          <button class="btn" onclick="loadSlot(1)">Load 1</button>
+          <button class="btn" onclick="loadSlot(2)">Load 2</button>
+          <button class="btn" onclick="loadSlot(3)">Load 3</button>
+        </div>
+        <div class="tutor-row" style="margin-top:6px">
+          <button class="btn" onclick="copyShareLink()">Copy Link</button>
+          <button class="btn" onclick="toggleRenderMode()">Render: <span id="renderModeLabel">Classic</span></button>
+        </div>
+      </div>
+    </details>
+
+    <div class="info-section slim">
+      <div class="info-label">Molecule Formula</div>
+      <div class="formula-box" id="formulaBox">—</div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-label">Atom Count</div>
+      <div class="info-val big" id="atomCount">0</div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-label">Selected Atom</div>
+      <div id="selectedInfo"><div style="font-size:12px;color:var(--muted)">Click an atom to inspect</div></div>
+    </div>
+
+    <div class="info-section slim">
+      <div class="info-label">Bonds</div>
+      <div class="bond-list" id="bondList"></div>
+    </div>
+
+    <details class="panel-group">
+      <summary>Chemistry Warnings</summary>
+      <div class="panel-group-body">
+        <div class="warning-list" id="warningList"></div>
+      </div>
+    </details>
+
+    <details class="panel-group">
+      <summary>Keyboard Shortcuts</summary>
+      <div class="panel-group-body">
+        <div class="shortcuts-grid">
+          <div class="kbd-item"><kbd>P</kbd>Place mode</div>
+          <div class="kbd-item"><kbd>B</kbd>Bond mode</div>
+          <div class="kbd-item"><kbd>M</kbd>Move mode</div>
+          <div class="kbd-item"><kbd>Del</kbd>Delete selected</div>
+          <div class="kbd-item"><kbd>Enter</kbd>Run tutor command</div>
+          <div class="kbd-item"><kbd>Tab</kbd>Accept tutor autocomplete</div>
+        </div>
+      </div>
+    </details>
+
+    <div class="info-section">
+      <div class="info-label">Tips</div>
+      <div class="atom-info-box">
+        <strong>Place:</strong> Select element → click canvas<br>
+        <strong>Bond:</strong> Click atom A → click atom B<br>
+        <strong>Delete:</strong> Click atom or bond → press <strong>Del</strong><br>
+        <strong>Rotate:</strong> Right-click drag<br>
+        <strong>Move:</strong> Use Move tool + drag atom
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="onboarding" id="onboardingModal">
+  <div class="onboarding-card">
+    <div class="onboarding-title">Welcome to MolBuilder 3D</div>
+    <div class="onboarding-sub">A quick guide to build, learn, and assess molecules.</div>
+    <div class="onboard-grid">
+      <div class="onboard-item"><strong>1) Build Fast</strong><br>Use Auto Build templates or type formulas like <code>C2H5OH</code>.</div>
+      <div class="onboard-item"><strong>2) Learn</strong><br>Ask AI Tutor: <code>build water</code> or <code>practice methane</code>.</div>
+      <div class="onboard-item"><strong>3) Check Work</strong><br>Use Practice + Check, then see your score in Assessment.</div>
+      <div class="onboard-item"><strong>4) Save/Share</strong><br>Save to slots or copy a link to share your exact structure.</div>
+    </div>
+    <div class="onboarding-actions">
+      <button class="btn" onclick="closeOnboarding()">Close</button>
+      <button class="btn" onclick="startFirstLesson()">Start First Lesson</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Periodic Table Data ──────────────────────────────────────────────
+const RAW_ELEMENTS = [
+  {z:1,sym:'H',name:'Hydrogen',mass:1.008,group:1,period:1},{z:2,sym:'He',name:'Helium',mass:4.003,group:18,period:1},
+  {z:3,sym:'Li',name:'Lithium',mass:6.94,group:1,period:2},{z:4,sym:'Be',name:'Beryllium',mass:9.012,group:2,period:2},
+  {z:5,sym:'B',name:'Boron',mass:10.81,group:13,period:2},{z:6,sym:'C',name:'Carbon',mass:12.011,group:14,period:2},
+  {z:7,sym:'N',name:'Nitrogen',mass:14.007,group:15,period:2},{z:8,sym:'O',name:'Oxygen',mass:15.999,group:16,period:2},
+  {z:9,sym:'F',name:'Fluorine',mass:18.998,group:17,period:2},{z:10,sym:'Ne',name:'Neon',mass:20.18,group:18,period:2},
+  {z:11,sym:'Na',name:'Sodium',mass:22.99,group:1,period:3},{z:12,sym:'Mg',name:'Magnesium',mass:24.305,group:2,period:3},
+  {z:13,sym:'Al',name:'Aluminum',mass:26.982,group:13,period:3},{z:14,sym:'Si',name:'Silicon',mass:28.085,group:14,period:3},
+  {z:15,sym:'P',name:'Phosphorus',mass:30.974,group:15,period:3},{z:16,sym:'S',name:'Sulfur',mass:32.06,group:16,period:3},
+  {z:17,sym:'Cl',name:'Chlorine',mass:35.45,group:17,period:3},{z:18,sym:'Ar',name:'Argon',mass:39.948,group:18,period:3},
+  {z:19,sym:'K',name:'Potassium',mass:39.098,group:1,period:4},{z:20,sym:'Ca',name:'Calcium',mass:40.078,group:2,period:4},
+  {z:21,sym:'Sc',name:'Scandium',mass:44.956,group:3,period:4},{z:22,sym:'Ti',name:'Titanium',mass:47.867,group:4,period:4},
+  {z:23,sym:'V',name:'Vanadium',mass:50.942,group:5,period:4},{z:24,sym:'Cr',name:'Chromium',mass:51.996,group:6,period:4},
+  {z:25,sym:'Mn',name:'Manganese',mass:54.938,group:7,period:4},{z:26,sym:'Fe',name:'Iron',mass:55.845,group:8,period:4},
+  {z:27,sym:'Co',name:'Cobalt',mass:58.933,group:9,period:4},{z:28,sym:'Ni',name:'Nickel',mass:58.693,group:10,period:4},
+  {z:29,sym:'Cu',name:'Copper',mass:63.546,group:11,period:4},{z:30,sym:'Zn',name:'Zinc',mass:65.38,group:12,period:4},
+  {z:31,sym:'Ga',name:'Gallium',mass:69.723,group:13,period:4},{z:32,sym:'Ge',name:'Germanium',mass:72.63,group:14,period:4},
+  {z:33,sym:'As',name:'Arsenic',mass:74.922,group:15,period:4},{z:34,sym:'Se',name:'Selenium',mass:78.971,group:16,period:4},
+  {z:35,sym:'Br',name:'Bromine',mass:79.904,group:17,period:4},{z:36,sym:'Kr',name:'Krypton',mass:83.798,group:18,period:4},
+  {z:37,sym:'Rb',name:'Rubidium',mass:85.468,group:1,period:5},{z:38,sym:'Sr',name:'Strontium',mass:87.62,group:2,period:5},
+  {z:39,sym:'Y',name:'Yttrium',mass:88.906,group:3,period:5},{z:40,sym:'Zr',name:'Zirconium',mass:91.224,group:4,period:5},
+  {z:41,sym:'Nb',name:'Niobium',mass:92.906,group:5,period:5},{z:42,sym:'Mo',name:'Molybdenum',mass:95.95,group:6,period:5},
+  {z:43,sym:'Tc',name:'Technetium',mass:98,group:7,period:5},{z:44,sym:'Ru',name:'Ruthenium',mass:101.07,group:8,period:5},
+  {z:45,sym:'Rh',name:'Rhodium',mass:102.91,group:9,period:5},{z:46,sym:'Pd',name:'Palladium',mass:106.42,group:10,period:5},
+  {z:47,sym:'Ag',name:'Silver',mass:107.87,group:11,period:5},{z:48,sym:'Cd',name:'Cadmium',mass:112.41,group:12,period:5},
+  {z:49,sym:'In',name:'Indium',mass:114.82,group:13,period:5},{z:50,sym:'Sn',name:'Tin',mass:118.71,group:14,period:5},
+  {z:51,sym:'Sb',name:'Antimony',mass:121.76,group:15,period:5},{z:52,sym:'Te',name:'Tellurium',mass:127.6,group:16,period:5},
+  {z:53,sym:'I',name:'Iodine',mass:126.9,group:17,period:5},{z:54,sym:'Xe',name:'Xenon',mass:131.29,group:18,period:5},
+  {z:55,sym:'Cs',name:'Cesium',mass:132.91,group:1,period:6},{z:56,sym:'Ba',name:'Barium',mass:137.33,group:2,period:6},
+  {z:57,sym:'La',name:'Lanthanum',mass:138.91,group:3,period:6,series:'lan'},{z:58,sym:'Ce',name:'Cerium',mass:140.12,group:3,period:6,series:'lan'},
+  {z:59,sym:'Pr',name:'Praseodymium',mass:140.91,group:3,period:6,series:'lan'},{z:60,sym:'Nd',name:'Neodymium',mass:144.24,group:3,period:6,series:'lan'},
+  {z:61,sym:'Pm',name:'Promethium',mass:145,group:3,period:6,series:'lan'},{z:62,sym:'Sm',name:'Samarium',mass:150.36,group:3,period:6,series:'lan'},
+  {z:63,sym:'Eu',name:'Europium',mass:151.96,group:3,period:6,series:'lan'},{z:64,sym:'Gd',name:'Gadolinium',mass:157.25,group:3,period:6,series:'lan'},
+  {z:65,sym:'Tb',name:'Terbium',mass:158.93,group:3,period:6,series:'lan'},{z:66,sym:'Dy',name:'Dysprosium',mass:162.5,group:3,period:6,series:'lan'},
+  {z:67,sym:'Ho',name:'Holmium',mass:164.93,group:3,period:6,series:'lan'},{z:68,sym:'Er',name:'Erbium',mass:167.26,group:3,period:6,series:'lan'},
+  {z:69,sym:'Tm',name:'Thulium',mass:168.93,group:3,period:6,series:'lan'},{z:70,sym:'Yb',name:'Ytterbium',mass:173.05,group:3,period:6,series:'lan'},
+  {z:71,sym:'Lu',name:'Lutetium',mass:174.97,group:3,period:6,series:'lan'},{z:72,sym:'Hf',name:'Hafnium',mass:178.49,group:4,period:6},
+  {z:73,sym:'Ta',name:'Tantalum',mass:180.95,group:5,period:6},{z:74,sym:'W',name:'Tungsten',mass:183.84,group:6,period:6},
+  {z:75,sym:'Re',name:'Rhenium',mass:186.21,group:7,period:6},{z:76,sym:'Os',name:'Osmium',mass:190.23,group:8,period:6},
+  {z:77,sym:'Ir',name:'Iridium',mass:192.22,group:9,period:6},{z:78,sym:'Pt',name:'Platinum',mass:195.08,group:10,period:6},
+  {z:79,sym:'Au',name:'Gold',mass:196.97,group:11,period:6},{z:80,sym:'Hg',name:'Mercury',mass:200.59,group:12,period:6},
+  {z:81,sym:'Tl',name:'Thallium',mass:204.38,group:13,period:6},{z:82,sym:'Pb',name:'Lead',mass:207.2,group:14,period:6},
+  {z:83,sym:'Bi',name:'Bismuth',mass:208.98,group:15,period:6},{z:84,sym:'Po',name:'Polonium',mass:209,group:16,period:6},
+  {z:85,sym:'At',name:'Astatine',mass:210,group:17,period:6},{z:86,sym:'Rn',name:'Radon',mass:222,group:18,period:6},
+  {z:87,sym:'Fr',name:'Francium',mass:223,group:1,period:7},{z:88,sym:'Ra',name:'Radium',mass:226,group:2,period:7},
+  {z:89,sym:'Ac',name:'Actinium',mass:227,group:3,period:7,series:'act'},{z:90,sym:'Th',name:'Thorium',mass:232.04,group:3,period:7,series:'act'},
+  {z:91,sym:'Pa',name:'Protactinium',mass:231.04,group:3,period:7,series:'act'},{z:92,sym:'U',name:'Uranium',mass:238.03,group:3,period:7,series:'act'},
+  {z:93,sym:'Np',name:'Neptunium',mass:237,group:3,period:7,series:'act'},{z:94,sym:'Pu',name:'Plutonium',mass:244,group:3,period:7,series:'act'},
+  {z:95,sym:'Am',name:'Americium',mass:243,group:3,period:7,series:'act'},{z:96,sym:'Cm',name:'Curium',mass:247,group:3,period:7,series:'act'},
+  {z:97,sym:'Bk',name:'Berkelium',mass:247,group:3,period:7,series:'act'},{z:98,sym:'Cf',name:'Californium',mass:251,group:3,period:7,series:'act'},
+  {z:99,sym:'Es',name:'Einsteinium',mass:252,group:3,period:7,series:'act'},{z:100,sym:'Fm',name:'Fermium',mass:257,group:3,period:7,series:'act'},
+  {z:101,sym:'Md',name:'Mendelevium',mass:258,group:3,period:7,series:'act'},{z:102,sym:'No',name:'Nobelium',mass:259,group:3,period:7,series:'act'},
+  {z:103,sym:'Lr',name:'Lawrencium',mass:262,group:3,period:7,series:'act'},{z:104,sym:'Rf',name:'Rutherfordium',mass:267,group:4,period:7},
+  {z:105,sym:'Db',name:'Dubnium',mass:270,group:5,period:7},{z:106,sym:'Sg',name:'Seaborgium',mass:271,group:6,period:7},
+  {z:107,sym:'Bh',name:'Bohrium',mass:270,group:7,period:7},{z:108,sym:'Hs',name:'Hassium',mass:277,group:8,period:7},
+  {z:109,sym:'Mt',name:'Meitnerium',mass:278,group:9,period:7},{z:110,sym:'Ds',name:'Darmstadtium',mass:281,group:10,period:7},
+  {z:111,sym:'Rg',name:'Roentgenium',mass:282,group:11,period:7},{z:112,sym:'Cn',name:'Copernicium',mass:285,group:12,period:7},
+  {z:113,sym:'Nh',name:'Nihonium',mass:286,group:13,period:7},{z:114,sym:'Fl',name:'Flerovium',mass:289,group:14,period:7},
+  {z:115,sym:'Mc',name:'Moscovium',mass:290,group:15,period:7},{z:116,sym:'Lv',name:'Livermorium',mass:293,group:16,period:7},
+  {z:117,sym:'Ts',name:'Tennessine',mass:294,group:17,period:7},{z:118,sym:'Og',name:'Oganesson',mass:294,group:18,period:7}
+];
+
+const CAT_COLORS = {
+  H:'#7aaeff', C:'#a0a8b8', N:'#4a9fff', O:'#ff6644',
+  hal:'#4af0b0', met:'#8ea0c2', alk:'#f0a04a', ear:'#c8d060',
+  tra:'#80a0c0', lan:'#c48cff', act:'#ff7fa3', non:'#ffd040',
+  nob:'#b8a0ff', met2:'#90a0c0', sem:'#70c870'
+};
+
+function inferCategory(el) {
+  if (el.sym === 'H') return 'H';
+  if (el.sym === 'C') return 'C';
+  if (el.sym === 'N') return 'N';
+  if (el.sym === 'O') return 'O';
+  if (el.series === 'lan') return 'lan';
+  if (el.series === 'act') return 'act';
+  if (el.group === 1) return 'alk';
+  if (el.group === 2) return 'ear';
+  if (el.group >= 3 && el.group <= 12) return 'tra';
+  if (el.group === 17) return 'hal';
+  if (el.group === 18) return 'nob';
+  if (['B','Si','Ge','As','Sb','Te','Po'].includes(el.sym)) return 'sem';
+  if (['P','S','Se'].includes(el.sym)) return 'non';
+  if (['F','Cl','Br','I','At','Ts'].includes(el.sym)) return 'hal';
+  if (['He','Ne','Ar','Kr','Xe','Rn','Og'].includes(el.sym)) return 'nob';
+  return 'met2';
+}
+
+function inferValence(el) {
+  if (el.group === 18) return 0;
+  if (el.group === 1) return 1;
+  if (el.group === 2) return 2;
+  if (el.group === 13) return 3;
+  if (el.group === 14) return 4;
+  if (el.group === 15) return 3;
+  if (el.group === 16) return 2;
+  if (el.group === 17) return 1;
+  if (el.series === 'lan' || el.series === 'act') return 3;
+  if (el.group >= 3 && el.group <= 12) return 2;
+  return 2;
+}
+
+function elementGrid(el) {
+  if (el.series === 'lan') return [8, el.z - 53]; // La-Lu -> cols 4..18
+  if (el.series === 'act') return [9, el.z - 85]; // Ac-Lr -> cols 4..18
+  return [el.period, el.group];
+}
+
+const ELEMENTS = RAW_ELEMENTS.map(el => {
+  const cat = inferCategory(el);
+  return {
+    ...el,
+    val: inferValence(el),
+    cat,
+    col: CAT_COLORS[cat] || '#9aa4b5',
+    grid: elementGrid(el)
+  };
+});
+
+const QUICK = ['H','C','N','O','S','P','F','Cl'];
+
+const BOND_LENGTHS = { '1':1.5, '2':1.3, '3':1.2 }; // angstroms approx, for display
+
+// ── State ────────────────────────────────────────────────────────────
+let atoms = [];
+let bonds = [];
+let selectedElement = ELEMENTS.find(e=>e.sym==='C');
+let mode = 'place'; // place | bond | drag
+let bondType = 1;
+let bondFirst = null;
+let selectedAtom = null;
+let selectedBond = null;
+let rotX = 0.3, rotY = -0.4;
+let zoom = 90;
+let isDragging = false;
+let isRightDrag = false;
+let dragAtom = null;
+let lastMX = 0, lastMY = 0;
+let nextId = 1;
+let selectedPulse = 0;
+let flashPinned = false;
+let flashDismissed = false;
+let tutorTimer = null;
+let tutorMode = 'guided'; // guided | practice
+let practicePlan = null;
+let practiceStep = 0;
+let tutorHistory = [];
+const TUTOR_HISTORY_LIMIT = 12;
+let assessment = { startedAt: Date.now(), checks: 0, mistakes: 0, score: 0 };
+let renderMode = 'classic'; // classic | cinematic
+const LESSONS = [
+  { key: 'water', label: 'Water Basics', cmd: 'practice water' },
+  { key: 'methane', label: 'Methane Tetrahedral', cmd: 'practice methane' },
+  { key: 'co2', label: 'CO2 Linear', cmd: 'practice carbon dioxide' },
+  { key: 'benzene', label: 'Benzene Ring', cmd: 'practice benzene' },
+  { key: 'ethanol', label: 'Ethanol Functional Group', cmd: 'practice ethanol' }
+];
+
+// ── Canvas Setup ──────────────────────────────────────────────────────
+const canvas = document.getElementById('mol');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+  canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  draw();
+}
+window.addEventListener('resize', resize);
+
+// ── Periodic Table UI ─────────────────────────────────────────────────
+function buildPTable() {
+  const grid = document.getElementById('ptable');
+  const cells = {};
+  grid.innerHTML = '';
+  for (let r=1; r<=9; r++) for (let c=1; c<=18; c++) cells[`${r},${c}`] = null;
+  ELEMENTS.forEach(el => { cells[`${el.grid[0]},${el.grid[1]}`] = el; });
+
+  for (let r=1; r<=9; r++) {
+    for (let c=1; c<=18; c++) {
+      const el = cells[`${r},${c}`];
+      const div = document.createElement('div');
+      div.className = 'el';
+      if (el) {
+        div.classList.add(`cat-${el.cat}`);
+        div.innerHTML = `<span class="num">${el.z}</span><span class="sym">${el.sym}</span>`;
+        div.title = `${el.name} (${el.sym}) — valence: ${el.val}`;
+        div.addEventListener('click', () => selectElement(el, div));
+        div.dataset.sym = el.sym;
+      } else {
+        div.style.visibility = 'hidden';
+      }
+      grid.appendChild(div);
+    }
+  }
+}
+
+function buildQuick() {
+  const qg = document.getElementById('quickGrid');
+  QUICK.forEach(sym => {
+    const el = ELEMENTS.find(e=>e.sym===sym);
+    const div = document.createElement('div');
+    div.className = 'qel';
+    div.style.background = el.col + '22';
+    div.style.border = `1px solid ${el.col}44`;
+    div.style.color = el.col;
+    div.textContent = sym;
+    div.dataset.sym = sym;
+    div.title = el.name;
+    div.addEventListener('click', () => selectElement(el, div));
+    qg.appendChild(div);
+  });
+}
+
+function selectElement(el, btn) {
+  selectedElement = el;
+  document.querySelectorAll('.el, .qel').forEach(d => d.classList.remove('selected'));
+  document.querySelectorAll(`[data-sym="${el.sym}"]`).forEach(d => d.classList.add('selected'));
+  if (mode !== 'place') setMode('place');
+}
+
+// ── Mode Control ─────────────────────────────────────────────────────
+function setMode(m) {
+  mode = m;
+  bondFirst = null;
+  ['toolPlace','toolBond','toolDrag'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+  });
+  document.getElementById({place:'toolPlace',bond:'toolBond',drag:'toolDrag'}[m]).classList.add('active');
+  document.getElementById('bondControls').style.display = m==='bond' ? 'block' : 'none';
+
+  const mi = document.getElementById('modeIndicator');
+  mi.className = 'mode-indicator ' + m;
+  mi.textContent = {
+    place: `Place mode — ${selectedElement.name} selected, click to place`,
+    bond: 'Bond mode — click atom A, then atom B',
+    drag: 'Move mode — drag atoms to reposition'
+  }[m];
+
+  canvas.style.cursor = m==='drag' ? 'grab' : 'crosshair';
+}
+
+function setBondType(t) {
+  bondType = t;
+  [1,2,3].forEach(i => {
+    document.getElementById('bt'+i).classList.toggle('active', i===t);
+  });
+}
+
+// ── 3D Math ──────────────────────────────────────────────────────────
+function rotate3d(x, y, z) {
+  // Rotate around Y
+  let x2 = x*Math.cos(rotY) + z*Math.sin(rotY);
+  let z2 = -x*Math.sin(rotY) + z*Math.cos(rotY);
+  // Rotate around X
+  let y2 = y*Math.cos(rotX) - z2*Math.sin(rotX);
+  let z3 = y*Math.sin(rotX) + z2*Math.cos(rotX);
+  return {x:x2, y:y2, z:z3};
+}
+
+function project(x, y, z) {
+  const fov = 8;
+  const d = fov + z;
+  const cx = canvas.offsetWidth/2, cy = canvas.offsetHeight/2;
+  return {
+    sx: cx + (x * zoom * fov) / d,
+    sy: cy - (y * zoom * fov) / d,
+    scale: fov/d
+  };
+}
+
+function getProjected(atom) {
+  const r = rotate3d(atom.x, atom.y, atom.z);
+  const p = project(r.x, r.y, r.z);
+  return {...p, depth: r.z};
+}
+
+function inverseRotateVec(x2, y2, z3) {
+  // Inverse of rotate3d: undo X rotation, then Y rotation.
+  const y = y2*Math.cos(rotX) + z3*Math.sin(rotX);
+  const z2 = -y2*Math.sin(rotX) + z3*Math.cos(rotX);
+  const x = x2*Math.cos(rotY) - z2*Math.sin(rotY);
+  const z = x2*Math.sin(rotY) + z2*Math.cos(rotY);
+  return {x, y, z};
+}
+
+// ── Place Atom ───────────────────────────────────────────────────────
+function placeAtom(sx, sy) {
+  // Place with stronger z spread to avoid flat stacking
+  const cx = canvas.offsetWidth/2, cy = canvas.offsetHeight/2;
+  const x = (sx - cx) / zoom;
+  const y = -(sy - cy) / zoom;
+  let z = (Math.random()-0.5) * 2.2;
+
+  // Nudge z when atom is too close in x/y to improve depth readability.
+  atoms.forEach(a => {
+    if (Math.hypot(a.x - x, a.y - y) < 0.25) z += (Math.random() - 0.5) * 1.2;
+  });
+
+  atoms.push({
+    id: nextId++,
+    sym: selectedElement.sym,
+    name: selectedElement.name,
+    col: selectedElement.col,
+    mass: selectedElement.mass,
+    val: selectedElement.val,
+    x, y, z
+  });
+  updateInfo();
+  draw();
+}
+
+function pushAtom(sym, x, y, z) {
+  const el = ELEMENTS.find(e => e.sym === sym);
+  if (!el) return null;
+  const atom = {
+    id: nextId++,
+    sym: el.sym,
+    name: el.name,
+    col: el.col,
+    mass: el.mass,
+    val: el.val,
+    x, y, z
+  };
+  atoms.push(atom);
+  return atom;
+}
+
+// ── Bonding ──────────────────────────────────────────────────────────
+function attemptBond(atom) {
+  if (!bondFirst) {
+    bondFirst = atom;
+    selectedAtom = atom;
+    flashDismissed = false;
+    draw();
+    return;
+  }
+  if (bondFirst.id === atom.id) { bondFirst = null; draw(); return; }
+
+  // Check if bond already exists
+  const existing = bonds.find(b =>
+    (b.a === bondFirst.id && b.b === atom.id) ||
+    (b.a === atom.id && b.b === bondFirst.id)
+  );
+  if (existing) {
+    existing.type = bondType; // update bond type
+  } else {
+    bonds.push({ a: bondFirst.id, b: atom.id, type: bondType });
+  }
+  bondFirst = null;
+  updateInfo();
+  draw();
+}
+
+// ── Hit Testing ──────────────────────────────────────────────────────
+function atomAtScreen(sx, sy) {
+  let best = null, bestD = Infinity;
+  atoms.forEach(atom => {
+    const p = getProjected(atom);
+    const r = getAtomRadius(atom, p.scale);
+    const d = Math.hypot(sx - p.sx, sy - p.sy);
+    if (d < r && d < bestD) { bestD = d; best = atom; }
+  });
+  return best;
+}
+
+function bondAtScreen(sx, sy) {
+  for (const bond of bonds) {
+    const a = atoms.find(x=>x.id===bond.a);
+    const b = atoms.find(x=>x.id===bond.b);
+    if (!a || !b) continue;
+    const pa = getProjected(a), pb = getProjected(b);
+    const dx = pb.sx-pa.sx, dy = pb.sy-pa.sy;
+    const len = Math.hypot(dx,dy);
+    if (len < 1) continue;
+    const t = ((sx-pa.sx)*dx + (sy-pa.sy)*dy)/(len*len);
+    if (t<0||t>1) continue;
+    const px = pa.sx + t*dx, py = pa.sy + t*dy;
+    const d = Math.hypot(sx-px, sy-py);
+    if (d < 8) return bond;
+  }
+  return null;
+}
+
+function getAtomRadius(atom, scale=1) {
+  const base = atom.sym==='H' ? 9 : atom.sym==='C' ? 11 : 10.5;
+  return Math.max(7.5, base * (0.9 + scale * 1.2));
+}
+
+// ── Canvas Events ────────────────────────────────────────────────────
+canvas.addEventListener('mousedown', e => {
+  const rect = canvas.getBoundingClientRect();
+  const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
+  lastMX = e.clientX; lastMY = e.clientY;
+  isDragging = false;
+
+  if (e.button === 2) { isRightDrag = true; return; }
+
+  if (mode === 'place') {
+    const hit = atomAtScreen(sx, sy);
+    if (hit) { selectedAtom = hit; selectedBond = null; flashDismissed = false; updateInfo(); draw(); }
+    else { selectedAtom = null; selectedBond = null; if (!flashPinned) flashDismissed = false; placeAtom(sx, sy); }
+  } else if (mode === 'bond') {
+    const hit = atomAtScreen(sx, sy);
+    if (hit) attemptBond(hit);
+  } else if (mode === 'drag') {
+    const hit = atomAtScreen(sx, sy);
+    if (hit) { dragAtom = hit; canvas.style.cursor='grabbing'; }
+    else {
+      const b = bondAtScreen(sx, sy);
+      if (b) { selectedBond = b; selectedAtom = null; updateInfo(); draw(); }
+    }
+  }
+});
+
+canvas.addEventListener('mousemove', e => {
+  const dx = e.clientX - lastMX, dy = e.clientY - lastMY;
+  lastMX = e.clientX; lastMY = e.clientY;
+
+  if (Math.abs(dx)>1||Math.abs(dy)>1) isDragging = true;
+
+  if (isRightDrag) {
+    rotY += dx * 0.01;
+    rotX += dy * 0.01;
+    draw();
+    return;
+  }
+
+  if (dragAtom && mode==='drag') {
+    // Move in camera plane so drag direction matches cursor at any rotation.
+    const camDX = dx / zoom;
+    const camDY = -dy / zoom;
+    const worldDelta = inverseRotateVec(camDX, camDY, 0);
+    dragAtom.x += worldDelta.x;
+    dragAtom.y += worldDelta.y;
+    dragAtom.z += worldDelta.z;
+    draw();
+  }
+});
+
+canvas.addEventListener('mouseup', e => {
+  isRightDrag = false;
+  if (dragAtom) { dragAtom = null; canvas.style.cursor='grab'; }
+});
+
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+canvas.addEventListener('wheel', e => {
+  zoom = Math.max(40, Math.min(200, zoom - e.deltaY * 0.15));
+  draw();
+});
+
+document.addEventListener('keydown', e => {
+  const tgt = e.target;
+  const typing =
+    tgt &&
+    (tgt.tagName === 'INPUT' ||
+      tgt.tagName === 'TEXTAREA' ||
+      tgt.tagName === 'SELECT' ||
+      tgt.isContentEditable);
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    if (typing) return;
+    if (selectedAtom) {
+      bonds = bonds.filter(b => b.a !== selectedAtom.id && b.b !== selectedAtom.id);
+      atoms = atoms.filter(a => a.id !== selectedAtom.id);
+      selectedAtom = null;
+      updateInfo();
+      draw();
+    } else if (selectedBond) {
+      bonds = bonds.filter(b => b !== selectedBond);
+      selectedBond = null;
+      updateInfo();
+      draw();
+    }
+    return;
+  }
+  // Keyboard shortcuts (avoid stealing keys while typing in inputs)
+  if (typing) return;
+  if (e.key === 'p' || e.key === 'P') setMode('place');
+  if (e.key === 'b' || e.key === 'B') setMode('bond');
+  if (e.key === 'm' || e.key === 'M') setMode('drag');
+});
+
+// ── Drawing ──────────────────────────────────────────────────────────
+function draw() {
+  const W = canvas.offsetWidth, H = canvas.offsetHeight;
+  ctx.clearRect(0, 0, W, H);
+
+  if (atoms.length === 0) {
+    ctx.fillStyle = '#252830';
+    ctx.font = '14px DM Sans, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Select an element and click to place atoms', W/2, H/2);
+    ctx.font = '12px DM Sans, sans-serif';
+    ctx.fillStyle = '#40444e';
+    ctx.fillText('Right-drag to rotate view', W/2, H/2 + 24);
+    return;
+  }
+
+  // Compute projected positions + depths
+  const proj = atoms.map(a => {
+    const p = getProjected(a);
+    return { atom: a, ...p };
+  });
+
+  // Sort for painter's algorithm
+  const sortedProj = [...proj].sort((a,b) => b.depth - a.depth);
+
+  // Draw bonds behind atoms
+  const bondsSorted = bonds.map(bond => {
+    const pa = proj.find(p=>p.atom.id===bond.a);
+    const pb = proj.find(p=>p.atom.id===bond.b);
+    if (!pa||!pb) return null;
+    return { bond, pa, pb, depth: (pa.depth+pb.depth)/2 };
+  }).filter(Boolean).sort((a,b)=>b.depth-a.depth);
+
+  bondsSorted.forEach(({bond, pa, pb}) => {
+    drawBond(pa, pb, bond);
+  });
+
+  // Draw atoms
+  sortedProj.forEach(p => {
+    drawAtom(p.atom, p.sx, p.sy, p.scale, p.depth);
+  });
+}
+
+function drawBond(pa, pb, bond) {
+  const isSelected = bond === selectedBond;
+  const col = bond.type===1 ? '#4af0b0' : bond.type===2 ? '#4a9fff' : '#f0a04a';
+  const alpha = isSelected ? 1 : 0.7;
+
+  const dx = pb.sx-pa.sx, dy = pb.sy-pa.sy;
+  const len = Math.hypot(dx,dy);
+  if (len < 1) return;
+  const nx = dx/len, ny = dy/len;
+  const rA = getAtomRadius(pa.atom, pa.scale)*0.9;
+  const rB = getAtomRadius(pb.atom, pb.scale)*0.9;
+  const ax = pa.sx + nx*rA, ay = pa.sy + ny*rA;
+  const bx = pb.sx - nx*rB, by = pb.sy - ny*rB;
+
+  const offsets = bond.type===1 ? [0] : bond.type===2 ? [-3,3] : [-5,0,5];
+  const px = -ny, py = nx;
+
+  offsets.forEach(off => {
+    ctx.beginPath();
+    ctx.moveTo(ax + px*off, ay + py*off);
+    ctx.lineTo(bx + px*off, by + py*off);
+    ctx.strokeStyle = isSelected
+      ? col
+      : `rgba(${hexToRgbStr(col)},${alpha})`;
+    ctx.lineWidth = isSelected ? 3 : 2.5;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  });
+
+  // Selection glow
+  if (isSelected) {
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(bx, by);
+    ctx.strokeStyle = col + '33';
+    ctx.lineWidth = 12;
+    ctx.stroke();
+  }
+}
+
+function drawAtom(atom, sx, sy, scale, depth) {
+  let r = getAtomRadius(atom, scale);
+  const isSelected = atom === selectedAtom || atom === bondFirst;
+  const depthFade = Math.max(0.45, Math.min(1, 0.7 + scale * 0.35));
+  if (isSelected) r += 1.5 + Math.sin(selectedPulse) * 0.8;
+
+  // Glow
+  if (isSelected) {
+    const g = ctx.createRadialGradient(sx,sy,0,sx,sy,r*2.2);
+    g.addColorStop(0, atom.col + '55');
+    g.addColorStop(1, 'transparent');
+    ctx.beginPath();
+    ctx.arc(sx, sy, r*2.2, 0, Math.PI*2);
+    ctx.fillStyle = g;
+    ctx.fill();
+  }
+
+  // Sphere gradient
+  const grad = ctx.createRadialGradient(sx-r*0.3, sy-r*0.35, r*0.05, sx, sy, r);
+  const c = hexToRgb(atom.col);
+  grad.addColorStop(0, `rgba(${c.r+80},${c.g+80},${c.b+80},${depthFade})`);
+  grad.addColorStop(0.55, `rgba(${c.r},${c.g},${c.b},${depthFade})`);
+  grad.addColorStop(1, `rgba(${Math.max(0,c.r-60)},${Math.max(0,c.g-60)},${Math.max(0,c.b-60)},${depthFade})`);
+
+  ctx.beginPath();
+  ctx.arc(sx, sy, r, 0, Math.PI*2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  if (renderMode === 'cinematic') {
+    // Small contact shadow and rim to improve depth readability.
+    ctx.beginPath();
+    ctx.ellipse(sx + r*0.12, sy + r*0.7, r*0.9, r*0.35, 0, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(sx, sy, r*0.98, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  if (isSelected) {
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // Label
+  const fontSize = Math.max(9, Math.min(18, r * 0.85));
+  ctx.font = `bold ${fontSize}px Space Mono, monospace`;
+  ctx.fillStyle = `rgba(255,255,255,${Math.min(1, depthFade*1.3)})`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(atom.sym, sx, sy+1);
+}
+
+function hexToRgb(hex) {
+  hex = hex.replace('#','');
+  return {
+    r: parseInt(hex.slice(0,2),16),
+    g: parseInt(hex.slice(2,4),16),
+    b: parseInt(hex.slice(4,6),16)
+  };
+}
+function hexToRgbStr(hex) {
+  const c = hexToRgb(hex);
+  return `${c.r},${c.g},${c.b}`;
+}
+
+// ── Info Panel ────────────────────────────────────────────────────────
+const KNOWN_MOLECULES = {
+  'H2': 'Hydrogen gas',
+  'O2': 'Oxygen gas',
+  'N2': 'Nitrogen gas',
+  'H2O': 'Water',
+  'CO2': 'Carbon dioxide',
+  'CH4': 'Methane',
+  'NH3': 'Ammonia',
+  'C2H6': 'Ethane',
+  'C2H4': 'Ethylene',
+  'C2H2': 'Acetylene',
+  'C2H5OH': 'Ethanol',
+  'C2H6O': 'Ethanol',
+  'CH3OH': 'Methanol',
+  'CH4O': 'Methanol',
+  'HCl': 'Hydrochloric acid',
+  'NaCl': 'Sodium chloride (table salt)',
+  'H2SO4': 'Sulfuric acid',
+  'H2O2': 'Hydrogen peroxide',
+  'C6H6': 'Benzene',
+  'C3H8': 'Propane',
+  'C4H10': 'Butane',
+  'NO2': 'Nitrogen dioxide',
+  'SO2': 'Sulfur dioxide',
+  'CO': 'Carbon monoxide',
+  'HF': 'Hydrofluoric acid',
+  'O3': 'Ozone',
+  'CH2O': 'Formaldehyde',
+  'C2H4O': 'Acetaldehyde',
+  'HCN': 'Hydrogen cyanide',
+};
+
+const BOND_INFO = {
+  'H-H': { name:'H–H', len:'0.74 Å', energy:'436 kJ/mol', note:'Nonpolar covalent' },
+  'C-C': { name:'C–C', len:'1.54 Å', energy:'347 kJ/mol', note:'Nonpolar covalent' },
+  'C=C': { name:'C=C', len:'1.34 Å', energy:'614 kJ/mol', note:'Double bond, planar' },
+  'C≡C': { name:'C≡C', len:'1.20 Å', energy:'839 kJ/mol', note:'Triple bond, linear' },
+  'C-H': { name:'C–H', len:'1.09 Å', energy:'413 kJ/mol', note:'Slightly polar' },
+  'C-O': { name:'C–O', len:'1.43 Å', energy:'358 kJ/mol', note:'Polar covalent' },
+  'C=O': { name:'C=O', len:'1.23 Å', energy:'745 kJ/mol', note:'Polar, carbonyl' },
+  'C-N': { name:'C–N', len:'1.47 Å', energy:'305 kJ/mol', note:'Polar covalent' },
+  'O-H': { name:'O–H', len:'0.96 Å', energy:'459 kJ/mol', note:'Polar, hydrogen bonds' },
+  'N-H': { name:'N–H', len:'1.01 Å', energy:'391 kJ/mol', note:'Polar covalent' },
+  'N-N': { name:'N–N', len:'1.45 Å', energy:'163 kJ/mol', note:'Weak single bond' },
+  'N≡N': { name:'N≡N', len:'1.10 Å', energy:'945 kJ/mol', note:'Very strong triple bond' },
+  'C-F': { name:'C–F', len:'1.35 Å', energy:'485 kJ/mol', note:'Strong polar covalent' },
+  'C-Cl': { name:'C–Cl', len:'1.77 Å', energy:'339 kJ/mol', note:'Polar covalent' },
+  'C-S': { name:'C–S', len:'1.82 Å', energy:'272 kJ/mol', note:'Polar covalent' },
+};
+
+const AUTO_BUILD_LIBRARY = {
+  H2O: {
+    name: 'Water',
+    atoms: [
+      { sym:'O', x:0, y:0, z:0 },
+      { sym:'H', x:-1.0, y:0.45, z:0.15 },
+      { sym:'H', x:1.0, y:0.45, z:-0.15 }
+    ],
+    bonds: [[0,1,1],[0,2,1]]
+  },
+  CO2: {
+    name: 'Carbon dioxide',
+    atoms: [
+      { sym:'O', x:-1.5, y:0, z:0 },
+      { sym:'C', x:0, y:0, z:0 },
+      { sym:'O', x:1.5, y:0, z:0 }
+    ],
+    bonds: [[1,0,2],[1,2,2]]
+  },
+  CH4: {
+    name: 'Methane',
+    atoms: [
+      { sym:'C', x:0, y:0, z:0 },
+      { sym:'H', x:1.1, y:1.1, z:1.1 },
+      { sym:'H', x:-1.1, y:-1.1, z:1.1 },
+      { sym:'H', x:-1.1, y:1.1, z:-1.1 },
+      { sym:'H', x:1.1, y:-1.1, z:-1.1 }
+    ],
+    bonds: [[0,1,1],[0,2,1],[0,3,1],[0,4,1]]
+  },
+  NH3: {
+    name: 'Ammonia',
+    atoms: [
+      { sym:'N', x:0, y:0.2, z:0 },
+      { sym:'H', x:-1.0, y:-0.65, z:0.55 },
+      { sym:'H', x:1.0, y:-0.65, z:0.55 },
+      { sym:'H', x:0, y:-0.65, z:-0.95 }
+    ],
+    bonds: [[0,1,1],[0,2,1],[0,3,1]]
+  },
+  O2: {
+    name: 'Oxygen gas',
+    atoms: [
+      { sym:'O', x:-0.9, y:0, z:0 },
+      { sym:'O', x:0.9, y:0, z:0 }
+    ],
+    bonds: [[0,1,2]]
+  },
+  N2: {
+    name: 'Nitrogen gas',
+    atoms: [
+      { sym:'N', x:-0.8, y:0, z:0 },
+      { sym:'N', x:0.8, y:0, z:0 }
+    ],
+    bonds: [[0,1,3]]
+  },
+  H2: {
+    name: 'Hydrogen gas',
+    atoms: [
+      { sym:'H', x:-0.7, y:0, z:0 },
+      { sym:'H', x:0.7, y:0, z:0 }
+    ],
+    bonds: [[0,1,1]]
+  },
+  C2H6: {
+    name: 'Ethane',
+    atoms: [
+      { sym:'C', x:-0.9, y:0, z:0 },
+      { sym:'C', x:0.9, y:0, z:0 },
+      { sym:'H', x:-1.5, y:0.95, z:0.7 },
+      { sym:'H', x:-1.5, y:-0.95, z:0.7 },
+      { sym:'H', x:-1.5, y:0, z:-1.1 },
+      { sym:'H', x:1.5, y:0.95, z:-0.7 },
+      { sym:'H', x:1.5, y:-0.95, z:-0.7 },
+      { sym:'H', x:1.5, y:0, z:1.1 }
+    ],
+    bonds: [[0,1,1],[0,2,1],[0,3,1],[0,4,1],[1,5,1],[1,6,1],[1,7,1]]
+  },
+  C2H4: {
+    name: 'Ethylene',
+    atoms: [
+      { sym:'C', x:-0.85, y:0, z:0 },
+      { sym:'C', x:0.85, y:0, z:0 },
+      { sym:'H', x:-1.45, y:0.95, z:0 },
+      { sym:'H', x:-1.45, y:-0.95, z:0 },
+      { sym:'H', x:1.45, y:0.95, z:0 },
+      { sym:'H', x:1.45, y:-0.95, z:0 }
+    ],
+    bonds: [[0,1,2],[0,2,1],[0,3,1],[1,4,1],[1,5,1]]
+  },
+  C2H2: {
+    name: 'Acetylene',
+    atoms: [
+      { sym:'H', x:-2.0, y:0, z:0 },
+      { sym:'C', x:-0.85, y:0, z:0 },
+      { sym:'C', x:0.85, y:0, z:0 },
+      { sym:'H', x:2.0, y:0, z:0 }
+    ],
+    bonds: [[0,1,1],[1,2,3],[2,3,1]]
+  },
+  CH3OH: {
+    name: 'Methanol',
+    atoms: [
+      { sym:'C', x:-0.8, y:0, z:0 },
+      { sym:'O', x:0.85, y:0.25, z:0 },
+      { sym:'H', x:1.5, y:0.95, z:0 },
+      { sym:'H', x:-1.45, y:0.9, z:0.55 },
+      { sym:'H', x:-1.45, y:-0.9, z:0.55 },
+      { sym:'H', x:-1.45, y:0, z:-0.95 }
+    ],
+    bonds: [[0,1,1],[1,2,1],[0,3,1],[0,4,1],[0,5,1]]
+  },
+  C2H5OH: {
+    name: 'Ethanol',
+    atoms: [
+      { sym:'C', x:-1.7, y:0, z:0 },
+      { sym:'C', x:-0.25, y:0, z:0 },
+      { sym:'O', x:1.15, y:0.3, z:0 },
+      { sym:'H', x:1.85, y:1.0, z:0 },
+      { sym:'H', x:-2.35, y:0.95, z:0.6 },
+      { sym:'H', x:-2.35, y:-0.95, z:0.6 },
+      { sym:'H', x:-2.35, y:0, z:-1.0 },
+      { sym:'H', x:-0.05, y:1.0, z:0.65 },
+      { sym:'H', x:-0.05, y:-1.0, z:0.65 },
+      { sym:'H', x:-0.05, y:0, z:-1.0 }
+    ],
+    bonds: [[0,1,1],[1,2,1],[2,3,1],[0,4,1],[0,5,1],[0,6,1],[1,7,1],[1,8,1],[1,9,1]]
+  },
+  H2SO4: {
+    name: 'Sulfuric acid',
+    atoms: [
+      { sym:'S', x:0, y:0, z:0 },
+      { sym:'O', x:1.5, y:0, z:0 },
+      { sym:'O', x:-1.5, y:0, z:0 },
+      { sym:'O', x:0, y:1.5, z:0 },
+      { sym:'O', x:0, y:-1.5, z:0 },
+      { sym:'H', x:2.25, y:0.7, z:0 },
+      { sym:'H', x:-2.25, y:-0.7, z:0 }
+    ],
+    bonds: [[0,1,2],[0,2,2],[0,3,1],[0,4,1],[3,5,1],[4,6,1]]
+  },
+  C6H6: {
+    name: 'Benzene',
+    atoms: [
+      { sym:'C', x:1.6, y:0, z:0 }, { sym:'C', x:0.8, y:1.38, z:0 }, { sym:'C', x:-0.8, y:1.38, z:0 },
+      { sym:'C', x:-1.6, y:0, z:0 }, { sym:'C', x:-0.8, y:-1.38, z:0 }, { sym:'C', x:0.8, y:-1.38, z:0 },
+      { sym:'H', x:2.5, y:0, z:0 }, { sym:'H', x:1.25, y:2.15, z:0 }, { sym:'H', x:-1.25, y:2.15, z:0 },
+      { sym:'H', x:-2.5, y:0, z:0 }, { sym:'H', x:-1.25, y:-2.15, z:0 }, { sym:'H', x:1.25, y:-2.15, z:0 }
+    ],
+    bonds: [
+      [0,1,2],[1,2,1],[2,3,2],[3,4,1],[4,5,2],[5,0,1],
+      [0,6,1],[1,7,1],[2,8,1],[3,9,1],[4,10,1],[5,11,1]
+    ]
+  }
+};
+
+const AUTO_BUILD_ALIASES = {
+  water:'H2O',
+  'carbon dioxide':'CO2',
+  methane:'CH4',
+  ammonia:'NH3',
+  oxygen:'O2',
+  'oxygen gas':'O2',
+  nitrogen:'N2',
+  'nitrogen gas':'N2',
+  hydrogen:'H2',
+  'hydrogen gas':'H2',
+  ethane:'C2H6',
+  ethylene:'C2H4',
+  acetylene:'C2H2',
+  methanol:'CH3OH',
+  ethanol:'C2H5OH',
+  benzene:'C6H6',
+  'sulfuric acid':'H2SO4'
+};
+
+function getBondKey(symA, symB, type) {
+  const sep = type === 1 ? '-' : type === 2 ? '=' : '≡';
+  const k1 = `${symA}${sep}${symB}`;
+  const k2 = `${symB}${sep}${symA}`;
+  return BOND_INFO[k1] || BOND_INFO[k2] || null;
+}
+
+function getFormula() {
+  const counts = {};
+  atoms.forEach(a => { counts[a.sym] = (counts[a.sym]||0)+1; });
+  // Hill order: if carbon exists -> C, H, then alphabetical; otherwise full alphabetical.
+  const hasCarbon = Object.prototype.hasOwnProperty.call(counts, 'C');
+  const syms = Object.keys(counts).sort((a,b)=>{
+    if (hasCarbon) {
+      if (a==='C') return -1; if (b==='C') return 1;
+      if (a==='H') return -1; if (b==='H') return 1;
+    }
+    return a.localeCompare(b);
+  });
+  return syms.map(s => counts[s]===1 ? s : `${s}${counts[s]}`).join('');
+}
+
+function updateInfo() {
+  document.getElementById('atomCount').textContent = atoms.length;
+
+  const formula = atoms.length ? getFormula() : '—';
+  document.getElementById('formulaBox').textContent = formula;
+
+  const name = KNOWN_MOLECULES[formula] || (atoms.length ? '(unknown — keep building!)' : '—');
+  document.getElementById('molName').textContent = name;
+
+  // Selected atom
+  const si = document.getElementById('selectedInfo');
+  if (selectedAtom) {
+    const el = ELEMENTS.find(e=>e.sym===selectedAtom.sym);
+    const bondCount = bonds.filter(b=>b.a===selectedAtom.id||b.b===selectedAtom.id).length;
+    si.innerHTML = `
+      <div class="atom-info-box">
+        <strong style="font-size:16px;color:${selectedAtom.col}">${selectedAtom.sym}</strong>
+        — ${selectedAtom.name}<br>
+        <strong>Mass:</strong> ${selectedAtom.mass} u<br>
+        <strong>Valence electrons:</strong> ${selectedAtom.val}<br>
+        <strong>Bonds formed:</strong> ${bondCount} / ${selectedAtom.val}<br>
+        ${bondCount > selectedAtom.val ? '<span style="color:#f05060;font-size:11px;">⚠ Exceeds typical valence!</span>' : ''}
+      </div>
+      <div class="delete-hint">Press Delete to remove</div>`;
+  } else if (selectedBond) {
+    const a = atoms.find(x=>x.id===selectedBond.a);
+    const b = atoms.find(x=>x.id===selectedBond.b);
+    const info = a && b ? getBondKey(a.sym, b.sym, selectedBond.type) : null;
+    const typeName = ['','single','double','triple'][selectedBond.type];
+    si.innerHTML = `
+      <div class="atom-info-box">
+        <strong>${a?a.sym:'?'} — ${b?b.sym:'?'}</strong><br>
+        <strong>Type:</strong> ${typeName} bond<br>
+        ${info ? `
+          <strong>Length:</strong> ${info.len}<br>
+          <strong>Energy:</strong> ${info.energy}<br>
+          <strong>Notes:</strong> ${info.note}
+        ` : ''}
+      </div>
+      <div class="delete-hint">Press Delete to remove bond</div>`;
+  } else {
+    si.innerHTML = '<div style="font-size:12px;color:var(--muted)">Click an atom or bond to inspect</div>';
+  }
+  updateAtomFlashcard();
+
+  // Bond list
+  const bl = document.getElementById('bondList');
+  if (bonds.length === 0) {
+    bl.innerHTML = '<div style="font-size:12px;color:var(--muted)">No bonds yet</div>';
+  } else {
+    bl.innerHTML = bonds.map(bond => {
+      const a = atoms.find(x=>x.id===bond.a);
+      const b = atoms.find(x=>x.id===bond.b);
+      if (!a||!b) return '';
+      const typeName = ['','−','=','≡'][bond.type];
+      const typeClass = ['','bt-single','bt-double','bt-triple'][bond.type];
+      return `<div class="bond-item">
+        <span>${a.sym} ${typeName} ${b.sym}</span>
+        <span class="bond-type ${typeClass}">${['','single','double','triple'][bond.type]}</span>
+      </div>`;
+    }).join('');
+  }
+  updateChemWarnings();
+  updateAssessmentView();
+}
+
+function updateChemWarnings() {
+  const list = document.getElementById('warningList');
+  if (!list) return;
+  const warnings = [];
+
+  atoms.forEach((atom) => {
+    const connected = bonds.filter(b => b.a===atom.id || b.b===atom.id);
+    const bondOrder = connected.reduce((s, b) => s + (b.type || 1), 0);
+    if (bondOrder > atom.val) warnings.push(`${atom.sym}#${atom.id}: exceeds typical valence (${bondOrder}/${atom.val}).`);
+  });
+
+  bonds.forEach((b) => {
+    const a = atoms.find(x => x.id === b.a);
+    const c = atoms.find(x => x.id === b.b);
+    if (!a || !c) return;
+    if ((a.sym === 'H' || c.sym === 'H') && b.type > 1) warnings.push(`Hydrogen should not form ${['','single','double','triple'][b.type]} bonds.`);
+    if ((a.sym === 'O' || c.sym === 'O') && b.type === 3) warnings.push(`Oxygen triple bonds are uncommon in this level model.`);
+  });
+
+  list.innerHTML = warnings.length
+    ? warnings.map(w => `<div class="warn-item">${w}</div>`).join('')
+    : '<div style="font-size:11px;color:var(--muted)">No chemistry warnings.</div>';
+}
+
+function updateAssessmentView() {
+  const elapsed = Math.floor((Date.now() - assessment.startedAt) / 1000);
+  const score = Math.max(0, (assessment.checks * 10) - (assessment.mistakes * 4));
+  assessment.score = score;
+  const setText = (id, txt) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = txt;
+  };
+  setText('metricScore', String(score));
+  setText('metricMistakes', String(assessment.mistakes));
+  setText('metricChecks', String(assessment.checks));
+  setText('metricTime', `${elapsed}s`);
+}
+
+function updateAtomFlashcard() {
+  const card = document.getElementById('atomFlashcard');
+  if (!card) return;
+  if (!selectedAtom || flashDismissed) {
+    card.classList.remove('show');
+    card.innerHTML = '';
+    return;
+  }
+  const bondCount = bonds.filter(b => b.a===selectedAtom.id || b.b===selectedAtom.id).length;
+  const isHypervalent = bondCount > selectedAtom.val;
+  const valenceLeft = Math.max(0, selectedAtom.val - bondCount);
+  card.innerHTML = `
+    <div class="atom-f-head">
+      <div class="atom-f-title" style="color:${selectedAtom.col};margin:0">${selectedAtom.name} (${selectedAtom.sym})</div>
+      <div class="atom-f-actions">
+        <button class="atom-f-btn" onclick="toggleFlashPin()">${flashPinned ? 'Unpin' : 'Pin'}</button>
+        <button class="atom-f-btn" onclick="dismissFlashcard()">Close</button>
+      </div>
+    </div>
+    <div class="atom-f-sub">Atom ID #${selectedAtom.id}</div>
+    <div class="atom-badges">
+      <span class="atom-badge ${isHypervalent ? 'warn' : 'good'}">Valence ${bondCount}/${selectedAtom.val}</span>
+      <span class="atom-badge ${valenceLeft === 0 ? 'good' : ''}">${valenceLeft} open bond${valenceLeft===1?'':'s'}</span>
+      <span class="atom-badge">Z=${(ELEMENTS.find(e=>e.sym===selectedAtom.sym)||{}).z || '?'}</span>
+    </div>
+    <div class="atom-f-row"><strong>Atomic Mass:</strong> ${selectedAtom.mass} u</div>
+    <div class="atom-f-row"><strong>Typical Valence:</strong> ${selectedAtom.val}</div>
+    <div class="atom-f-row"><strong>Bonds:</strong> ${bondCount}</div>
+    <div class="atom-f-row"><strong>Position:</strong> (${selectedAtom.x.toFixed(2)}, ${selectedAtom.y.toFixed(2)}, ${selectedAtom.z.toFixed(2)})</div>
+    <div class="atom-f-row" style="color:${isHypervalent ? '#f05060' : 'var(--muted)'}">
+      ${isHypervalent ? 'Warning: exceeds typical valence' : 'Valence check: within typical range'}
+    </div>
+  `;
+  card.classList.add('show');
+}
+
+function toggleFlashPin() {
+  flashPinned = !flashPinned;
+  flashDismissed = false;
+  updateAtomFlashcard();
+}
+
+function dismissFlashcard() {
+  flashDismissed = true;
+  const card = document.getElementById('atomFlashcard');
+  if (card) {
+    card.classList.remove('show');
+    card.innerHTML = '';
+  }
+}
+
+function logTutor(msg) {
+  const log = document.getElementById('tutorLog');
+  if (!log) return;
+  const div = document.createElement('div');
+  div.className = 'tutor-msg';
+  div.textContent = msg;
+  log.prepend(div);
+}
+
+function stopTutorBuild() {
+  if (tutorTimer) {
+    clearInterval(tutorTimer);
+    tutorTimer = null;
+  }
+}
+
+function setTutorMode(mode) {
+  tutorMode = mode;
+  const label = document.getElementById('tutorModeLabel');
+  if (label) label.textContent = `mode: ${mode}`;
+}
+
+function startGuidedBuild(formula, tpl) {
+  stopTutorBuild();
+  setTutorMode('guided');
+  practicePlan = null;
+  practiceStep = 0;
+  clearAll();
+  const steps = [];
+  tpl.atoms.forEach((a, i) => steps.push({ kind: 'atom', idx: i, payload: a }));
+  tpl.bonds.forEach((b, i) => steps.push({ kind: 'bond', idx: i, payload: b }));
+  const ids = [];
+  let ptr = 0;
+  logTutor(`Tutor: building ${tpl.name} (${formula}) step-by-step.`);
+  tutorTimer = setInterval(() => {
+    if (ptr >= steps.length) {
+      stopTutorBuild();
+      updateInfo();
+      draw();
+      logTutor('Tutor: done. Rotate and inspect the final structure.');
+      return;
+    }
+    const s = steps[ptr++];
+    if (s.kind === 'atom') {
+      const a = s.payload;
+      const atom = pushAtom(a.sym, a.x, a.y, a.z);
+      if (atom) {
+        ids[s.idx] = atom.id;
+        selectedAtom = atom;
+        flashDismissed = false;
+        if (!flashPinned) updateAtomFlashcard();
+        logTutor(`Step ${ptr}/${steps.length}: placed ${atom.sym} atom.`);
+      }
+    } else {
+      const [ai, bi, type] = s.payload;
+      const a = ids[ai], b = ids[bi];
+      if (a && b) {
+        bonds.push({ a, b, type });
+        selectedBond = bonds[bonds.length - 1];
+        selectedAtom = null;
+        logTutor(`Step ${ptr}/${steps.length}: added ${['','single','double','triple'][type]} bond.`);
+      }
+    }
+    updateInfo();
+    draw();
+  }, 650);
+}
+
+function startPracticeMode(formula, tpl) {
+  stopTutorBuild();
+  setTutorMode('practice');
+  clearAll();
+  practiceStep = 0;
+  practicePlan = {
+    formula,
+    tpl,
+    atomIdByTemplateIndex: []
+  };
+  logTutor(`Practice mode: build ${tpl.name} (${formula}).`);
+  logTutor(`Step 1/${tpl.atoms.length + tpl.bonds.length}: place atom ${tpl.atoms[0].sym}. Then click Check.`);
+}
+
+function checkTutorStep() {
+  if (!practicePlan) {
+    logTutor('Tutor: no active practice session. Ask "practice water" first.');
+    assessment.mistakes++;
+    updateAssessmentView();
+    return;
+  }
+  assessment.checks++;
+  const tpl = practicePlan.tpl;
+  const totalSteps = tpl.atoms.length + tpl.bonds.length;
+  if (practiceStep < tpl.atoms.length) {
+    const idx = practiceStep;
+    if (atoms.length <= idx) {
+      logTutor(`Not yet. Place atom ${tpl.atoms[idx].sym}, then press Check.`);
+      assessment.mistakes++;
+      updateAssessmentView();
+      return;
+    }
+    const actual = [...atoms].sort((a,b)=>a.id-b.id)[idx];
+    if (!actual || actual.sym !== tpl.atoms[idx].sym) {
+      logTutor(`Close, but step expects ${tpl.atoms[idx].sym}. Undo/delete and try again.`);
+      assessment.mistakes++;
+      updateAssessmentView();
+      return;
+    }
+    practicePlan.atomIdByTemplateIndex[idx] = actual.id;
+    practiceStep++;
+    if (practiceStep < tpl.atoms.length) {
+      logTutor(`Correct. Next: place atom ${tpl.atoms[practiceStep].sym}.`);
+    } else {
+      logTutor('Great atoms done. Now start bonding and press Check after each bond.');
+      const [ai, bi, t] = tpl.bonds[0];
+      logTutor(`Next bond: atom #${ai+1} to atom #${bi+1} (${['','single','double','triple'][t]}).`);
+    }
+    return;
+  }
+
+  const bondIdx = practiceStep - tpl.atoms.length;
+  if (bonds.length <= bondIdx) {
+    logTutor('Not yet. Create the expected bond first, then press Check.');
+    assessment.mistakes++;
+    updateAssessmentView();
+    return;
+  }
+  const [ai, bi, t] = tpl.bonds[bondIdx];
+  const idA = practicePlan.atomIdByTemplateIndex[ai];
+  const idB = practicePlan.atomIdByTemplateIndex[bi];
+  const expected = bonds.find(b =>
+    ((b.a===idA && b.b===idB) || (b.a===idB && b.b===idA)) && b.type===t
+  );
+  if (!expected) {
+    logTutor(`That bond is not the expected one. Need ${['','single','double','triple'][t]} bond between atom #${ai+1} and #${bi+1}.`);
+    assessment.mistakes++;
+    updateAssessmentView();
+    return;
+  }
+  practiceStep++;
+  if (practiceStep >= totalSteps) {
+    logTutor('Excellent. Practice build completed.');
+    practicePlan = null;
+    setTutorMode('guided');
+    updateAssessmentView();
+    return;
+  }
+  const nextBondIdx = practiceStep - tpl.atoms.length;
+  const [nai, nbi, nt] = tpl.bonds[nextBondIdx];
+  logTutor(`Correct. Next bond: atom #${nai+1} to atom #${nbi+1} (${['','single','double','triple'][nt]}).`);
+}
+
+function runTutor() {
+  const input = document.getElementById('tutorInput');
+  const raw = (input?.value || '').trim();
+  if (!raw) return;
+  addTutorHistory(raw);
+  const q = raw.toLowerCase();
+  if (q === 'help') {
+    logTutor('Tutor commands: "build water", "practice water", "build CO2", "build C8H10N4O2", "suggest".');
+    return;
+  }
+  if (q === 'suggest') {
+    const picks = Object.keys(AUTO_BUILD_LIBRARY).sort().slice(0, 8).join(', ');
+    logTutor(`Try one of these: ${picks}`);
+    return;
+  }
+  const resolved = resolveTutorCommand(raw);
+  let target = resolved.target;
+  const isPractice = resolved.mode === 'practice';
+  if (!target) {
+    logTutor(`Tutor: I could not parse "${raw}". Try "build water" or "build CH4".`);
+    return;
+  }
+  const key = target.toLowerCase();
+  const formula = AUTO_BUILD_ALIASES[key] || target.toUpperCase();
+  let tpl = AUTO_BUILD_LIBRARY[formula];
+  if (!tpl) {
+    tpl = generateTemplateFromFormula(formula);
+    if (!tpl) {
+      logTutor(`Tutor: I could not parse "${raw}". Try "build water" or "build CH4".`);
+      return;
+    }
+  }
+  if (isPractice) startPracticeMode(formula, tpl);
+  else startGuidedBuild(formula, tpl);
+}
+
+function clearAll() {
+  atoms = []; bonds = [];
+  selectedAtom = null; selectedBond = null; bondFirst = null;
+  updateInfo(); draw();
+}
+
+function populateAutoBuildList() {
+  const list = document.getElementById('autoBuildList');
+  if (!list) return;
+  list.innerHTML = '';
+  Object.keys(AUTO_BUILD_LIBRARY).sort().forEach(formula => {
+    const option = document.createElement('option');
+    option.value = formula;
+    list.appendChild(option);
+  });
+  Object.keys(AUTO_BUILD_ALIASES).sort().forEach(name => {
+    const option = document.createElement('option');
+    option.value = name;
+    list.appendChild(option);
+  });
+}
+
+function getTutorCommandUniverse() {
+  const commands = new Set(['help', 'suggest']);
+  Object.keys(AUTO_BUILD_ALIASES).forEach((name) => {
+    commands.add(`build ${name}`);
+    commands.add(`practice ${name}`);
+  });
+  Object.keys(AUTO_BUILD_LIBRARY).forEach((formula) => {
+    commands.add(`build ${formula}`);
+    commands.add(`practice ${formula}`);
+  });
+  return [...commands];
+}
+
+function levenshtein(a, b) {
+  if (a === b) return 0;
+  const m = a.length, n = b.length;
+  if (!m) return n;
+  if (!n) return m;
+  const dp = Array.from({length: m + 1}, () => Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost
+      );
+    }
+  }
+  return dp[m][n];
+}
+
+function resolveTutorCommand(raw) {
+  const trimmed = (raw || '').trim();
+  const q = trimmed.toLowerCase();
+  let mode = 'guided';
+  let target = trimmed;
+  if (q.startsWith('build ')) {
+    target = trimmed.slice(6).trim();
+  } else if (q.startsWith('practice ')) {
+    mode = 'practice';
+    target = trimmed.slice(9).trim();
+  } else {
+    return {mode: 'guided', target: trimmed};
+  }
+
+  const key = target.toLowerCase();
+  if (AUTO_BUILD_ALIASES[key] || AUTO_BUILD_LIBRARY[target.toUpperCase()]) return {mode, target};
+
+  const universe = getTutorCommandUniverse().filter(c => c.startsWith(`${mode === 'practice' ? 'practice' : 'build'} `));
+  const best = universe
+    .map(cmd => ({cmd, d: levenshtein(cmd.toLowerCase(), `${mode === 'practice' ? 'practice' : 'build'} ${target.toLowerCase()}`)}))
+    .sort((a,b) => a.d - b.d)[0];
+  if (best && best.d <= 3) {
+    const recovered = best.cmd.replace(/^build\s+|^practice\s+/i, '');
+    logTutor(`Tutor: autocorrected "${raw}" -> "${best.cmd}".`);
+    return {mode, target: recovered};
+  }
+  return {mode, target};
+}
+
+function addTutorHistory(cmd) {
+  const cleaned = (cmd || '').trim();
+  if (!cleaned) return;
+  tutorHistory = [cleaned, ...tutorHistory.filter(x => x.toLowerCase() !== cleaned.toLowerCase())].slice(0, TUTOR_HISTORY_LIMIT);
+  populateTutorSuggestions();
+}
+
+function applyTutorGhostCompletion() {
+  const input = document.getElementById('tutorInput');
+  if (!input) return;
+  const val = input.value;
+  const start = input.selectionStart;
+  const end = input.selectionEnd;
+  if (start !== end || end !== val.length || !val.trim()) return;
+  const lower = val.toLowerCase();
+  const candidate = getTutorCommandUniverse()
+    .sort()
+    .find(c => c.toLowerCase().startsWith(lower) && c.length > val.length);
+  if (!candidate) return;
+  input.value = candidate;
+  input.setSelectionRange(val.length, candidate.length);
+}
+
+function populateTutorSuggestions() {
+  const list = document.getElementById('tutorSuggestions');
+  if (!list) return;
+  list.innerHTML = '';
+
+  const seen = new Set();
+  const addOption = (value) => {
+    if (!value || seen.has(value.toLowerCase())) return;
+    seen.add(value.toLowerCase());
+    const option = document.createElement('option');
+    option.value = value;
+    list.appendChild(option);
+  };
+  tutorHistory.forEach(addOption);
+  getTutorCommandUniverse().sort().forEach(addOption);
+}
+
+function renderLessons() {
+  const el = document.getElementById('lessonList');
+  if (!el) return;
+  el.innerHTML = '';
+  LESSONS.forEach((lesson, i) => {
+    const item = document.createElement('button');
+    item.className = 'lesson-item';
+    item.textContent = `${i + 1}. ${lesson.label}`;
+    item.addEventListener('click', () => {
+      const input = document.getElementById('tutorInput');
+      if (input) input.value = lesson.cmd;
+      runTutor();
+    });
+    el.appendChild(item);
+  });
+}
+
+function snapshotState() {
+  return {
+    atoms: atoms.map(a => ({...a})),
+    bonds: bonds.map(b => ({...b})),
+    nextId,
+    rotX, rotY, zoom
+  };
+}
+
+function restoreState(state) {
+  if (!state) return;
+  atoms = (state.atoms || []).map(a => ({...a}));
+  bonds = (state.bonds || []).map(b => ({...b}));
+  nextId = state.nextId || (atoms.reduce((m,a)=>Math.max(m,a.id),0) + 1);
+  rotX = state.rotX ?? 0.3;
+  rotY = state.rotY ?? -0.4;
+  zoom = state.zoom ?? 90;
+  selectedAtom = null;
+  selectedBond = null;
+  bondFirst = null;
+  updateInfo();
+  draw();
+}
+
+function saveSlot(slot) {
+  const key = `molbuilder_slot_${slot}`;
+  localStorage.setItem(key, JSON.stringify(snapshotState()));
+  logTutor(`Saved current molecule to slot ${slot}.`);
+}
+
+function loadSlot(slot) {
+  const key = `molbuilder_slot_${slot}`;
+  const raw = localStorage.getItem(key);
+  if (!raw) {
+    logTutor(`Slot ${slot} is empty.`);
+    return;
+  }
+  try {
+    restoreState(JSON.parse(raw));
+    logTutor(`Loaded slot ${slot}.`);
+  } catch (e) {
+    logTutor(`Failed to load slot ${slot}.`);
+  }
+}
+
+function copyShareLink() {
+  const payload = btoa(unescape(encodeURIComponent(JSON.stringify(snapshotState()))));
+  const url = `${location.origin}${location.pathname}#mol=${payload}`;
+  navigator.clipboard.writeText(url).then(() => {
+    logTutor('Share link copied to clipboard.');
+  }).catch(() => {
+    logTutor('Could not access clipboard. Copy from URL bar after reload hash set.');
+  });
+}
+
+function tryLoadFromHash() {
+  const h = location.hash || '';
+  const m = h.match(/mol=([^&]+)/);
+  if (!m) return;
+  try {
+    const parsed = JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+    restoreState(parsed);
+    logTutor('Loaded molecule from share link.');
+  } catch (e) {
+    logTutor('Failed to parse share link data.');
+  }
+}
+
+function toggleRenderMode() {
+  renderMode = renderMode === 'classic' ? 'cinematic' : 'classic';
+  const label = document.getElementById('renderModeLabel');
+  if (label) label.textContent = renderMode === 'classic' ? 'Classic' : 'Cinematic';
+  draw();
+}
+
+function openOnboarding() {
+  const modal = document.getElementById('onboardingModal');
+  if (modal) modal.classList.add('show');
+}
+
+function closeOnboarding() {
+  const modal = document.getElementById('onboardingModal');
+  if (modal) modal.classList.remove('show');
+}
+
+function startFirstLesson() {
+  closeOnboarding();
+  const input = document.getElementById('tutorInput');
+  if (input) input.value = 'practice water';
+  runTutor();
+}
+
+function focusTutorInput() {
+  const input = document.getElementById('tutorInput');
+  if (input) input.focus();
+}
+
+function renderTemplateCards() {
+  const grid = document.getElementById('templateGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  Object.keys(AUTO_BUILD_LIBRARY).sort().forEach((formula) => {
+    const tpl = AUTO_BUILD_LIBRARY[formula];
+    const btn = document.createElement('button');
+    btn.className = 'template-chip';
+    btn.innerHTML = `<div class="f">${formula}</div><div class="n">${tpl.name}</div>`;
+    btn.addEventListener('click', () => {
+      buildFromTemplate(formula);
+      const input = document.getElementById('autoBuildInput');
+      if (input) input.value = formula;
+    });
+    grid.appendChild(btn);
+  });
+}
+
+function parseFormulaString(formula) {
+  const cleaned = (formula || '').trim();
+  if (!cleaned || !/^[A-Za-z0-9]+$/.test(cleaned)) return null;
+  const normalized = cleaned[0].toUpperCase() + cleaned.slice(1);
+  const re = /([A-Z][a-z]?)(\d*)/g;
+  const counts = {};
+  let consumed = '';
+  let m;
+  while ((m = re.exec(normalized)) !== null) {
+    const sym = m[1];
+    const n = m[2] ? parseInt(m[2], 10) : 1;
+    consumed += m[0];
+    if (!ELEMENTS.find(e => e.sym === sym) || Number.isNaN(n) || n < 1) return null;
+    counts[sym] = (counts[sym] || 0) + n;
+  }
+  if (consumed !== normalized) return null;
+  return counts;
+}
+
+function generateTemplateFromFormula(formula) {
+  const counts = parseFormulaString(formula);
+  if (!counts) return null;
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  if (total > 40) return null;
+
+  const heavySyms = Object.keys(counts).filter(s => s !== 'H');
+  const atomsOut = [];
+  const bondsOut = [];
+  const heavyPositions = [];
+  let heavyIndex = 0;
+
+  if (heavySyms.length === 0 && counts.H) {
+    // H-only molecules: simple chain
+    const n = counts.H;
+    for (let i = 0; i < n; i++) atomsOut.push({ sym: 'H', x: (i - (n - 1) / 2) * 1.1, y: 0, z: 0 });
+    for (let i = 1; i < n; i++) bondsOut.push([i - 1, i, 1]);
+    return { name: `${formula.toUpperCase()} (generated)`, atoms: atomsOut, bonds: bondsOut };
+  }
+
+  // Place heavy atoms on a loose 3D ring/chain.
+  heavySyms.forEach(sym => {
+    for (let i = 0; i < counts[sym]; i++) {
+      const a = heavyIndex * 0.9;
+      const r = 1.8 + Math.min(2.2, heavyIndex * 0.05);
+      const x = heavyIndex === 0 ? 0 : Math.cos(a) * r;
+      const y = heavyIndex === 0 ? 0 : Math.sin(a) * r * 0.7;
+      const z = heavyIndex === 0 ? 0 : Math.sin(a * 0.5) * 0.9;
+      atomsOut.push({ sym, x, y, z });
+      heavyPositions.push(atomsOut.length - 1);
+      heavyIndex++;
+    }
+  });
+
+  for (let i = 1; i < heavyPositions.length; i++) bondsOut.push([heavyPositions[i - 1], heavyPositions[i], 1]);
+
+  // Attach hydrogens to nearest heavy atoms in round-robin.
+  const hCount = counts.H || 0;
+  for (let i = 0; i < hCount; i++) {
+    const hostIdx = heavyPositions[i % Math.max(1, heavyPositions.length)];
+    const host = atomsOut[hostIdx];
+    const t = (Math.PI * 2 * i) / Math.max(1, hCount);
+    const x = host.x + Math.cos(t) * 1.15;
+    const y = host.y + Math.sin(t) * 0.95;
+    const z = host.z + (((i % 2) * 2 - 1) * 0.55);
+    atomsOut.push({ sym: 'H', x, y, z });
+    bondsOut.push([hostIdx, atomsOut.length - 1, 1]);
+  }
+
+  return { name: `${formula.toUpperCase()} (generated)`, atoms: atomsOut, bonds: bondsOut };
+}
+
+function autoBuildFromInput() {
+  const input = document.getElementById('autoBuildInput');
+  const query = input ? input.value : '';
+  if (!query || !query.trim()) return;
+  const key = query.trim().toLowerCase();
+  const formula = AUTO_BUILD_ALIASES[key] || query.trim().toUpperCase();
+  if (!AUTO_BUILD_LIBRARY[formula]) {
+    const generated = generateTemplateFromFormula(formula);
+    if (!generated) {
+      alert(`No template for "${query}" and could not parse formula. Try: water, CO2, methane, ethanol, benzene.`);
+      return;
+    }
+    buildFromTemplateObject(generated);
+    if (input) input.value = formula.toUpperCase();
+    return;
+  }
+  buildFromTemplate(formula);
+  if (input) input.value = formula;
+}
+
+function buildFromTemplate(formula) {
+  const tpl = AUTO_BUILD_LIBRARY[formula];
+  if (!tpl) return;
+  buildFromTemplateObject(tpl);
+}
+
+function buildFromTemplateObject(tpl) {
+  if (!tpl) return;
+
+  atoms = [];
+  bonds = [];
+  selectedAtom = null;
+  selectedBond = null;
+  bondFirst = null;
+  nextId = 1;
+
+  const idMap = [];
+  tpl.atoms.forEach((a) => {
+    const el = ELEMENTS.find(e => e.sym === a.sym);
+    if (!el) return;
+    const id = nextId++;
+    idMap.push(id);
+    atoms.push({
+      id,
+      sym: el.sym,
+      name: el.name,
+      col: el.col,
+      mass: el.mass,
+      val: el.val,
+      x: a.x,
+      y: a.y,
+      z: a.z
+    });
+  });
+
+  tpl.bonds.forEach(([ai, bi, type]) => {
+    const a = idMap[ai], b = idMap[bi];
+    if (a && b) bonds.push({ a, b, type });
+  });
+
+  rotX = 0.3;
+  rotY = -0.4;
+  zoom = 90;
+  updateInfo();
+  draw();
+}
+
+function buildRandomTemplate() {
+  const keys = Object.keys(AUTO_BUILD_LIBRARY);
+  if (!keys.length) return;
+  const formula = keys[Math.floor(Math.random() * keys.length)];
+  buildFromTemplate(formula);
+  const input = document.getElementById('autoBuildInput');
+  if (input) input.value = formula;
+}
+
+function rotateDump() {
+  rotX = 0.3; rotY = -0.4; zoom = 90;
+  draw();
+}
+
+// ── Init ─────────────────────────────────────────────────────────────
+buildPTable();
+buildQuick();
+populateAutoBuildList();
+populateTutorSuggestions();
+renderTemplateCards();
+renderLessons();
+selectElement(ELEMENTS.find(e=>e.sym==='C'), null);
+setTimeout(resize, 50);
+tryLoadFromHash();
+updateAssessmentView();
+
+const autoBuildInput = document.getElementById('autoBuildInput');
+if (autoBuildInput) {
+  autoBuildInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') autoBuildFromInput();
+  });
+}
+const tutorInput = document.getElementById('tutorInput');
+if (tutorInput) {
+  tutorInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab' && tutorInput.selectionStart !== tutorInput.selectionEnd) {
+      e.preventDefault();
+      tutorInput.setSelectionRange(tutorInput.value.length, tutorInput.value.length);
+      return;
+    }
+    if (e.key === 'Enter') runTutor();
+  });
+  tutorInput.addEventListener('input', () => applyTutorGhostCompletion());
+}
+logTutor('Tutor ready. Ask: "build water" for a guided walkthrough.');
+setInterval(updateAssessmentView, 1000);
+if (!localStorage.getItem('molbuilder_onboarding_seen')) {
+  openOnboarding();
+  localStorage.setItem('molbuilder_onboarding_seen', '1');
+}
+
+// Auto-rotate when idle
+let autoRotate = true;
+let lastInteract = Date.now();
+canvas.addEventListener('mousedown', () => { lastInteract = Date.now(); autoRotate = false; });
+canvas.addEventListener('mouseup', () => { setTimeout(()=>{ autoRotate = true; }, 3000); });
+
+function animate() {
+  selectedPulse += 0.1;
+  if (autoRotate && atoms.length > 0 && Date.now()-lastInteract > 3000) {
+    rotY += 0.005;
+    draw();
+  }
+  requestAnimationFrame(animate);
+}
+animate();
+resize();
+</script>
+</body>
+</html>
